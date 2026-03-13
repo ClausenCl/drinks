@@ -1,0 +1,451 @@
+Drinks Tracker - Operations and Architecture (as of 2026-03-12)
+================================================================
+
+This document answers:
+1) How to stop "hosting" (dev/prod) safely.
+2) How to start the server step-by-step (local dev).
+3) What the app is, how it works today (architecture + current features).
+4) What to do differently when running on a server (LAN-only or global).
+
+
+1) Stopping The App ("Hosting")
+------------------------------
+
+There are two separate things that can be running:
+A) The Next.js web server (your app)
+B) The PostgreSQL database (usually via Docker)
+
+You stop each one differently.
+
+1.1 If you started the app with `npm run dev` (development mode)
+--------------------------------------------------------------
+Typical command:
+  cd app/frontend
+  npm run dev
+
+How to stop:
+- In the terminal where it is running, press Ctrl+C once.
+  This stops the foreground Node/Next.js process immediately.
+
+If you close the terminal window/tab:
+- If the process is running in the foreground of that terminal, closing it will also stop the server.
+- If you started it in the background (for example with `&`, `nohup`, `screen`, `tmux`, a systemd service),
+  then closing the terminal may NOT stop it. In that case you must stop the background/session/service.
+
+1.2 If you started the app with `npm start` (production mode)
+-------------------------------------------------------------
+Typical commands:
+  cd app/frontend
+  npm run build
+  npm start
+
+How to stop:
+- Ctrl+C in the terminal where `npm start` is running.
+- Or stop the process/service if it is running under systemd, pm2, docker, etc.
+
+1.3 If you started the database with Docker Compose
+---------------------------------------------------
+Typical command (detached mode):
+  docker compose -f docker/docker-compose.yml up -d db
+
+Important:
+- When you use `-d`, the DB container keeps running in the background.
+- Closing your terminal does NOT stop it.
+
+How to stop the DB container:
+- Stop (keeps container + data volume):
+    docker compose -f docker/docker-compose.yml stop db
+- Stop and remove containers (keeps the named volume by default):
+    docker compose -f docker/docker-compose.yml down
+- Stop and remove containers AND delete the database data volume (DESTROYS DATA):
+    docker compose -f docker/docker-compose.yml down -v
+
+1.4 If you started both `web` and `db` via compose
+--------------------------------------------------
+Typical command:
+  docker compose -f docker/docker-compose.yml up -d
+
+How to stop:
+  docker compose -f docker/docker-compose.yml down
+
+Summary for stopping:
+- If you're only running `npm run dev` in a terminal: Ctrl+C (or closing the terminal) is enough.
+- If you used Docker Compose with `-d`: you must run `docker compose ... down/stop` to stop containers.
+
+
+2) Starting The Server (Local Development) - Step By Step
+---------------------------------------------------------
+
+2.1 Prerequisites
+-----------------
+You need:
+- Node.js + npm installed (the repo uses Next.js + TypeScript)
+- Docker installed (recommended) for PostgreSQL
+
+You can check versions:
+  node -v
+  npm -v
+  docker version
+  docker compose version
+
+2.2 Configure environment variables
+-----------------------------------
+This repo expects environment variables in:
+  app/frontend/.env.local
+
+An example exists at:
+  app/frontend/.env.local.example
+
+Required variables:
+- DATABASE_URL
+  Example for local Docker Postgres:
+    postgresql://postgres:postgres@localhost:5432/drinks?schema=public
+
+- SESSION_SECRET
+  Any long random string in production.
+  In dev it can be anything, but changing it will invalidate existing logins.
+
+Note:
+- The `npm run db:*` scripts load variables from `app/frontend/.env.local` automatically.
+
+2.3 Start Postgres (recommended via Docker)
+-------------------------------------------
+From the repo root:
+  docker compose -f docker/docker-compose.yml up -d db
+
+Confirm it is running:
+  docker compose -f docker/docker-compose.yml ps
+
+2.4 Create DB tables (migrations)
+---------------------------------
+From repo root:
+  cd app/frontend
+  npm run db:migrate
+
+What this does:
+- Runs Prisma Migrate using schema at `prisma/schema.prisma`.
+- Creates the tables in the database referenced by DATABASE_URL.
+- Creates a migrations history table Prisma uses.
+
+If you see errors like "table does not exist":
+- It usually means migrations were not run against the DB you are connected to.
+- Confirm DATABASE_URL points to `localhost:5432/drinks` for local Docker.
+
+2.5 Seed example data (users, products, fridge)
+------------------------------------------------
+From repo root:
+  cd app/frontend
+  npm run db:seed
+
+Seeded example users:
+- admin / admin
+- manager / manager
+- resident / resident
+
+Seeded initial fridge:
+- Fridge id: 00000000-0000-0000-0000-000000000001
+  This makes it easy to test `/fridge/<id>` and QR flows.
+
+2.6 Start the Next.js dev server
+---------------------------------
+From repo root:
+  cd app/frontend
+  npm run dev
+
+Open in browser:
+  http://localhost:3000/login
+
+2.7 Basic test checklist
+------------------------
+1) Login at /login with one of the seeded users.
+2) Go to /menu, select the fridge, open it.
+3) Tap a product button to log a drink.
+4) Go to /history and confirm entries appear.
+5) (Optional) Delete-last-entry API exists:
+   DELETE /api/drinks/<entryId>/last
+   This only works if <entryId> is your most recent non-deleted entry.
+
+
+2.8 Production: Docker Compose (recommended)
+--------------------------------------------
+For a server, prefer the production compose file:
+  docker compose -f docker/docker-compose.prod.yml up -d --build
+
+What it does:
+- Starts Postgres with a persistent volume.
+- Starts the Next.js app container and on startup:
+  - waits for DB,
+  - runs `prisma migrate deploy`,
+  - runs seed once (only if the admin user does not exist),
+  - starts the web server.
+
+Important:
+- Set a long random `SESSION_SECRET` in your shell/environment before starting.
+- If you access the app over plain HTTP (common on home LAN), ensure `SESSION_COOKIE_SECURE=false`.
+  If you enable HTTPS via a reverse proxy, set it to `true` instead.
+
+
+3) Exact Build and Workings Of The App So Far
+---------------------------------------------
+
+3.1 High-level architecture
+---------------------------
+This is a single Next.js application that contains:
+- Frontend pages (mobile-first UI)
+- API routes (backend HTTP endpoints)
+
+Shared backend logic is organized under:
+  backend/
+
+Even though "backend/" exists as a folder, the runtime is still Next.js:
+- Requests to /api/* hit Next.js API route files in `app/frontend/pages/api/*`
+- Those handlers import code from `backend/*` (services/helpers)
+
+Database access:
+- Prisma ORM (PostgreSQL)
+- Prisma schema is in `prisma/schema.prisma`
+
+3.2 Repository layout (current)
+-------------------------------
+Key folders/files:
+- app/frontend/
+  - pages/               UI routes (pages router)
+  - pages/api/           API endpoints
+  - components/          UI components (ProductButton, etc.)
+  - styles/              Tailwind globals
+  - next.config.ts       allows importing from outside via `externalDir`
+
+- backend/
+  - lib/prisma.ts        Prisma client singleton
+  - lib/http.ts          small response helpers (json, unauthorized, etc.)
+  - services/session.ts  session cookie creation + verification
+  - services/password.ts bcrypt password verify
+  - services/logs.ts     writes Logs rows for critical actions
+
+- prisma/
+  - schema.prisma        database schema (authoritative)
+  - seed.ts              seeds sample data
+
+- docker/
+  - docker-compose.yml   Postgres + web service (builds Next.js)
+  - Dockerfile.web       builds Next.js and runs it
+
+3.3 Authentication and sessions (how login works)
+-------------------------------------------------
+This app uses simple cookie-based session authentication:
+- No email.
+- Login is username + password.
+- On successful login, the server sets an httpOnly cookie.
+
+Cookie details (conceptually):
+- Cookie name: "drinks_session"
+- Cookie value: "<base64url(json payload)>.<hmac signature>"
+- Payload contains:
+  - user id
+  - username
+  - role
+  - houseId
+  - exp (expiration timestamp)
+
+Security properties:
+- Cookie is httpOnly: JavaScript in the browser cannot read it.
+- Signature prevents tampering: role/house cannot be edited client-side.
+- sameSite=lax reduces CSRF risk for normal navigation.
+- secure=true in production (only sent over HTTPS) and false in dev.
+
+Important operational note:
+- SESSION_SECRET must be kept stable in production.
+  If it changes, all existing sessions become invalid and users must log in again.
+
+3.4 Authorization (roles)
+-------------------------
+The session payload includes `role`.
+API routes check this role for admin/manager-only endpoints.
+
+Currently implemented checks:
+- /api/users (admin-only) is present but returns NOT_IMPLEMENTED
+- /api/logs (admin-only) is present but returns NOT_IMPLEMENTED
+- /api/products/[id] PATCH (manager/admin) is present but returns NOT_IMPLEMENTED
+
+Resident-only business rules implemented:
+- Delete-last-entry enforces "only delete your most recent entry":
+  It queries your most recent non-deleted entry and only allows deletion of that id.
+
+3.5 Drink logging flow (current implementation)
+------------------------------------------------
+Frontend:
+- /fridge/[id] loads fridge + products via GET /api/fridges/[id]
+- Product button triggers POST /api/drinks with fridgeId + productId + quantity=1
+- A short "Logged" toast is shown
+
+Backend:
+- Validates session
+- Validates fridge exists and is active
+- Validates product exists and is active
+- Validates that fridge-product relationship exists (product is offered in that fridge)
+- Creates a DrinkEntry row with:
+  - userId from session
+  - priceAtTime set from current Product.price (historical preservation rule)
+- Writes a Log row of type DRINK_ADDED
+
+History:
+- /history calls GET /api/drinks/me
+- It returns the latest 50 entries for the current user (newest first)
+- Includes: product name, fridge name, quantity, priceAtTime, deleted flag
+
+Deletion:
+- DELETE /api/drinks/[id]/last performs soft delete:
+  - sets deleted=true (does not remove the row)
+  - writes a Log row of type DRINK_DELETED
+
+3.6 Database schema (what tables exist)
+---------------------------------------
+The Prisma schema defines:
+- houses
+- users
+- products
+- fridges
+- fridge_products (join table)
+- drink_entries (stores price_at_time + deleted)
+- bills
+- bill_participants
+- logs
+
+Key integrity rules:
+- Users belong to a house via users.house_id.
+- DrinkEntries store user_id/product_id/fridge_id and price_at_time.
+- Changing a user’s house updates users.house_id, but old DrinkEntries are unchanged.
+- Logs are append-only audit rows.
+
+3.7 What is NOT implemented yet (by spec phase)
+------------------------------------------------
+These exist as placeholders or are not built yet:
+- Admin: create/edit/delete products/fridges, view logs UI, delete users
+- Manager: house dashboards, totals, date range filtering, price changes UI
+- Bills: create bills, list my bills
+- Totals grouped by fridge in UI
+- QR code generation (the route exists; generating/printing QR codes is a separate step)
+
+The goal so far was to have:
+- A working DB schema
+- Login + session authentication
+- A working QR-style fridge page and drink logging pipeline
+- A minimal menu + history UI
+
+
+4) Running This App On A Server (Local LAN or Global)
+-----------------------------------------------------
+
+You have two main deployment styles:
+A) Docker Compose (recommended for simplicity)
+B) Bare metal (install Postgres + run Node)
+
+4.1 Deployment style A: Docker Compose (recommended)
+----------------------------------------------------
+What you get:
+- One Postgres container (db)
+- One web container (Next.js server) built from docker/Dockerfile.web
+
+Steps:
+1) Copy repo to server.
+2) Set a strong secret:
+   - In your shell: export SESSION_SECRET="long_random_value"
+   - Or define it in an .env file for compose.
+3) Start:
+   docker compose -f docker/docker-compose.yml up -d
+
+Important production step (migrations):
+- The `web` container does NOT automatically run migrations.
+- You must run migrations once when deploying a new version that changes schema.
+
+Recommended approach:
+- Temporarily run migrations from the server (host) with Node available:
+    cd app/frontend
+    npm ci
+    npm run db:migrate
+
+Or run a one-off container with node tooling (more advanced).
+
+Database persistence:
+- docker-compose.yml uses a named volume `db_data`.
+- This keeps your DB data across container restarts.
+
+Backups:
+- Back up the Postgres volume regularly.
+- Minimum viable: `pg_dump` from inside/outside the container.
+
+4.2 Deployment style B: Bare metal (Postgres installed on host)
+---------------------------------------------------------------
+What you do:
+- Install PostgreSQL on the server
+- Create a DB + user
+- Run `npm run build` and `npm start` for the Next.js server
+
+This is more manual but can be fine for small setups.
+
+4.3 LAN-only vs global internet exposure
+----------------------------------------
+LAN-only (recommended for a dorm system):
+- Bind to local network only
+- Put it behind a reverse proxy or only expose port 3000 on the LAN
+- You can run HTTP, but HTTPS is still recommended if feasible.
+
+Global exposure (internet):
+- Use HTTPS (reverse proxy with TLS, e.g. nginx/caddy/traefik)
+- Strong SESSION_SECRET
+- Strong Postgres password (not "postgres")
+- Firewall rules (only expose 80/443)
+- Regular backups and updates
+
+4.4 Environment variables in production
+---------------------------------------
+You must set:
+- DATABASE_URL
+  In docker-compose, it points at the `db` service by default:
+    postgresql://postgres:postgres@db:5432/drinks?schema=public
+
+- SESSION_SECRET
+  Must be a random secret.
+
+If you run behind HTTPS:
+- Set NODE_ENV=production so session cookies are `secure`.
+
+4.5 Common operational pitfalls
+-------------------------------
+Pitfall: "The table public.users does not exist"
+- You are connected to a DB that has no migrations applied.
+- Fix by running `npm run db:migrate` against the correct DATABASE_URL.
+
+Pitfall: login always fails
+- Seed not run (no users)
+- Wrong DATABASE_URL (empty DB)
+- SESSION_SECRET changed, invalidating sessions (users just need to re-login)
+
+Pitfall: product not available in fridge
+- The join table `fridge_products` must contain (fridgeId, productId).
+  The seed sets this up for the initial fridge and products.
+
+
+5) Quick Command Reference
+--------------------------
+
+Start DB:
+  docker compose -f docker/docker-compose.yml up -d db
+
+Stop DB:
+  docker compose -f docker/docker-compose.yml stop db
+
+Remove containers:
+  docker compose -f docker/docker-compose.yml down
+
+Migrate + seed:
+  cd app/frontend
+  npm run db:migrate
+  npm run db:seed
+
+Run dev:
+  cd app/frontend
+  npm run dev
+
+Stop dev:
+  Ctrl+C

@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/frontend/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BEWOHNER
+  GETRAENKEMINISTER
+  ADMIN
+
+  @@map("user_role")
+}
+
+enum LogType {
+  DRINK_ADDED
+  DRINK_DELETED
+  USER_DELETED
+  PRICE_CHANGED
+
+  @@map("log_type")
+}
+
+model House {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users User[]
+
+  @@map("houses")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(BEWOHNER)
+  houseId      String   @db.Uuid @map("house_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  active       Boolean  @default(true)
+
+  house            House             @relation(fields: [houseId], references: [id], onDelete: Restrict)
+  drinkEntries     DrinkEntry[]
+  billsCreated     Bill[]            @relation("BillCreatedBy")
+  billParticipants BillParticipant[]
+  logs             Log[]
+
+  @@map("users")
+}
+
+model Product {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  price     Decimal  @db.Decimal(10, 2)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  fridgeProducts FridgeProduct[]
+  drinkEntries   DrinkEntry[]
+
+  @@map("products")
+}
+
+model Fridge {
+  id                  String   @id @default(uuid()) @db.Uuid
+  name                String
+  locationDescription String   @map("location_description")
+  createdAt           DateTime @default(now()) @map("created_at")
+  active              Boolean  @default(true)
+
+  fridgeProducts FridgeProduct[]
+  drinkEntries   DrinkEntry[]
+
+  @@map("fridges")
+}
+
+model FridgeProduct {
+  id        String @id @default(uuid()) @db.Uuid
+  fridgeId  String @db.Uuid @map("fridge_id")
+  productId String @db.Uuid @map("product_id")
+
+  fridge  Fridge  @relation(fields: [fridgeId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([fridgeId, productId])
+  @@map("fridge_products")
+}
+
+model DrinkEntry {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid @map("user_id")
+  productId   String   @db.Uuid @map("product_id")
+  fridgeId    String   @db.Uuid @map("fridge_id")
+  quantity    Int      @default(1)
+  priceAtTime Decimal  @db.Decimal(10, 2) @map("price_at_time")
+  createdAt   DateTime @default(now()) @map("created_at")
+  deleted     Boolean  @default(false)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  fridge  Fridge  @relation(fields: [fridgeId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([fridgeId, createdAt])
+  @@map("drink_entries")
+}
+
+model Bill {
+  id              String   @id @default(uuid()) @db.Uuid
+  createdByUserId String   @db.Uuid @map("created_by_user_id")
+  title           String
+  totalAmount     Decimal  @db.Decimal(10, 2) @map("total_amount")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  createdBy     User              @relation("BillCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  participants  BillParticipant[]
+
+  @@index([createdByUserId, createdAt])
+  @@map("bills")
+}
+
+model BillParticipant {
+  id          String  @id @default(uuid()) @db.Uuid
+  billId      String  @db.Uuid @map("bill_id")
+  userId      String  @db.Uuid @map("user_id")
+  shareAmount Decimal @db.Decimal(10, 2) @map("share_amount")
+
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([billId, userId])
+  @@map("bill_participants")
+}
+
+model Log {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      LogType
+  userId    String   @db.Uuid @map("user_id")
+  metadata  Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([type, createdAt])
+  @@map("logs")
+}
