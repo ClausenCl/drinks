@@ -184,6 +184,10 @@ Important:
 - If you access the app over plain HTTP (common on home LAN), ensure `SESSION_COOKIE_SECURE=false`.
   If you enable HTTPS via a reverse proxy, set it to `true` instead.
 
+If the build fails with SIGKILL / OOM:
+- Increase the server/container RAM (recommended: >= 2 GB).
+- Then retry: `docker compose -f docker/docker-compose.prod.yml up -d --build`
+
 
 3) Exact Build and Workings Of The App So Far
 ---------------------------------------------
