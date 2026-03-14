@@ -6,6 +6,9 @@ RUN npm ci
 FROM node:22-alpine AS build
 WORKDIR /repo/app/frontend
 ENV NEXT_TELEMETRY_DISABLED=1
+# Keep build memory usage low for small servers (can be overridden at build time).
+ENV NEXT_BUILD_WORKER_COUNT=1
+ENV NODE_OPTIONS=--max-old-space-size=384
 COPY --from=deps /repo/app/frontend/node_modules ./node_modules
 COPY app/frontend ./
 COPY backend /repo/backend
