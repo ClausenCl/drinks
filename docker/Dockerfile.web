@@ -32,5 +32,6 @@ COPY --from=build /repo/app/frontend/public ./public
 COPY --from=build /repo/app/frontend/scripts ./scripts
 COPY --from=build /repo/backend /repo/backend
 COPY --from=build /repo/prisma /repo/prisma
+RUN [ -e prisma ] || ln -s /repo/prisma prisma
 EXPOSE 3000
 CMD ["node", "scripts/prod-start.mjs"]

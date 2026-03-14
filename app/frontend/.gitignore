@@ -20,6 +20,9 @@
 # production
 /build
 
+# local symlink to the repo's /prisma (created by scripts/ensure-prisma-link.mjs)
+/prisma
+
 # misc
 .DS_Store
 *.pem

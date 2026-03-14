@@ -1,7 +1,23 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs/promises";
 import path from "node:path";
 
 import { PrismaClient } from "@prisma/client";
+
+async function ensurePrismaLink() {
+  const linkPath = path.resolve(process.cwd(), "prisma");
+  try {
+    const stat = await fs.lstat(linkPath);
+    if (stat.isSymbolicLink() || stat.isDirectory()) return;
+  } catch {
+    // continue
+  }
+  try {
+    await fs.symlink(path.resolve(process.cwd(), "../../prisma"), linkPath, "dir");
+  } catch {
+    // If the link cannot be created (rare in Linux containers), prisma commands will likely fail anyway.
+  }
+}
 
 function resolveBin(cmd) {
   if (cmd.includes("/") || cmd.includes("\\") || cmd.startsWith(".")) return cmd;
@@ -40,7 +56,8 @@ function runOrThrow(cmd, args) {
 }
 
 async function main() {
-  const schemaPath = path.resolve(process.cwd(), "../../prisma/schema.prisma");
+  await ensurePrismaLink();
+  const schemaPath = path.resolve(process.cwd(), "prisma/schema.prisma");
 
   console.log("[startup] waiting for database...");
   await waitForDb();
@@ -59,4 +76,3 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-
