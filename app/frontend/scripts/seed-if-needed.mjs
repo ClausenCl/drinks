@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,7 +9,7 @@ function resolveBin(cmd) {
   if (cmd.includes("/") || cmd.includes("\\") || cmd.startsWith(".")) return cmd;
   const ext = process.platform === "win32" ? ".cmd" : "";
   const candidate = path.join(process.cwd(), "node_modules", ".bin", `${cmd}${ext}`);
-  return candidate;
+  return existsSync(candidate) ? candidate : cmd;
 }
 
 async function main() {
@@ -41,4 +42,3 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-

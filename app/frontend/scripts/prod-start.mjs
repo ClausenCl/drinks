@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -23,7 +24,7 @@ function resolveBin(cmd) {
   if (cmd.includes("/") || cmd.includes("\\") || cmd.startsWith(".")) return cmd;
   const ext = process.platform === "win32" ? ".cmd" : "";
   const candidate = path.join(process.cwd(), "node_modules", ".bin", `${cmd}${ext}`);
-  return candidate;
+  return existsSync(candidate) ? candidate : cmd;
 }
 
 async function waitForDb({ timeoutMs = 60_000 } = {}) {
@@ -48,6 +49,7 @@ function runOrThrow(cmd, args) {
   const resolved = resolveBin(cmd);
   return new Promise((resolve, reject) => {
     const child = spawn(resolved, args, { stdio: "inherit", env: process.env });
+    child.on("error", reject);
     child.on("exit", (code, signal) => {
       if (code === 0) return resolve();
       reject(new Error(`${cmd} ${args.join(" ")} failed (${signal ?? code})`));
