@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { AppShell } from "../components/AppShell";
 import { AdminLogsTable } from "../components/AdminLogsTable";
+import { FridgeManager } from "../components/FridgeManager";
+import { ManualChargeCreator } from "../components/ManualChargeCreator";
 import { useMe } from "../components/useMe";
 
 export default function AdminPage() {
@@ -13,7 +15,11 @@ export default function AdminPage() {
   }, [loading, me, router]);
   return (
     <AppShell title="Admin">
-      <AdminLogsTable />
+      <div className="space-y-4">
+        <AdminLogsTable />
+        <FridgeManager />
+        <ManualChargeCreator />
+      </div>
     </AppShell>
   );
 }

@@ -1,10 +1,82 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { methodNotAllowed, notImplemented, unauthorized } from "@backend/lib/http";
+import { UserRole } from "@prisma/client";
+import { prisma } from "@backend/lib/prisma";
+import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
 import { getSessionUser } from "@backend/services/session";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return methodNotAllowed(res);
   const session = getSessionUser(req);
   if (!session) return unauthorized(res);
-  return notImplemented(res);
+
+  if (req.method === "POST") {
+    if (session.role !== UserRole.BEWOHNER) return unauthorized(res);
+
+    const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+    const totalRaw = typeof req.body?.totalAmount === "string" ? req.body.totalAmount.trim() : "";
+    const paidByUserId = typeof req.body?.paidByUserId === "string" ? (req.body.paidByUserId as string) : session.id;
+    const participantIds = Array.isArray(req.body?.participantIds)
+      ? (req.body.participantIds as unknown[]).filter((x): x is string => typeof x === "string")
+      : [];
+
+    if (!title) return badRequest(res, "Missing title");
+    const total = Number(totalRaw.replace(",", "."));
+    if (!Number.isFinite(total) || total <= 0) return badRequest(res, "Invalid totalAmount");
+
+    const uniqParticipants = Array.from(new Set(participantIds));
+    if (!uniqParticipants.includes(paidByUserId)) uniqParticipants.push(paidByUserId);
+    if (uniqParticipants.length < 1) return badRequest(res, "No participants");
+
+    const users = await prisma.user.findMany({
+      where: { id: { in: uniqParticipants }, role: UserRole.BEWOHNER, active: true },
+      select: { id: true },
+    });
+    if (users.length !== uniqParticipants.length) return badRequest(res, "Unknown participant");
+
+    const n = uniqParticipants.length;
+    const share = total / n;
+    const shares = uniqParticipants.map((uid) => ({
+      userId: uid,
+      shareAmount: uid === paidByUserId ? -(total - share) : share,
+    }));
+
+    const created = await prisma.$transaction(async (tx) => {
+      const bill = await tx.bill.create({
+        data: {
+          createdByUserId: session.id,
+          paidByUserId,
+          title,
+          totalAmount: total.toFixed(2),
+          participants: {
+            create: shares.map((s) => ({
+              userId: s.userId,
+              shareAmount: s.shareAmount.toFixed(2),
+            })),
+          },
+        },
+        select: { id: true, title: true, totalAmount: true, createdAt: true, paidByUserId: true },
+      });
+      return bill;
+    });
+
+    return json(res, 201, {
+      id: created.id,
+      title: created.title,
+      totalAmount: created.totalAmount.toFixed(2),
+      createdAt: created.createdAt.toISOString(),
+      paidByUserId: created.paidByUserId,
+    });
+  }
+
+  if (req.method === "GET") {
+    // Admin/minister overview (simple)
+    if (session.role === UserRole.BEWOHNER) return unauthorized(res);
+    const bills = await prisma.bill.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, title: true, totalAmount: true, createdAt: true, createdByUserId: true, paidByUserId: true },
+    });
+    return json(res, 200, bills.map((b) => ({ ...b, totalAmount: b.totalAmount.toFixed(2), createdAt: b.createdAt.toISOString() })));
+  }
+
+  return methodNotAllowed(res);
 }

@@ -39,6 +39,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: { billedInId: created.id },
       });
 
+      await tx.billParticipant.updateMany({
+        where: { billedInId: null, user: { houseId } },
+        data: { billedInId: created.id },
+      });
+
+      await tx.manualCharge.updateMany({
+        where: { billedInId: null, houseId },
+        data: { billedInId: created.id },
+      });
+
       return created;
     });
 
@@ -47,4 +57,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return methodNotAllowed(res);
 }
-

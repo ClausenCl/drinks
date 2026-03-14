@@ -14,30 +14,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const billedWhere =
     billed === "unbilled" ? { billedInId: null } : billed === "billed" ? { billedInId: { not: null } } : {};
 
-  const parts = await prisma.billParticipant.findMany({
+  const items = await prisma.manualCharge.findMany({
     where: { userId: session.id, ...billedWhere },
-    orderBy: { bill: { createdAt: "desc" } },
+    orderBy: { createdAt: "desc" },
     take: 50,
-    select: {
-      id: true,
-      shareAmount: true,
-      billedInId: true,
-      bill: { select: { id: true, title: true, totalAmount: true, createdAt: true, paidByUserId: true } },
-    },
+    select: { id: true, title: true, amount: true, createdAt: true, billedInId: true },
   });
 
   return json(
     res,
     200,
-    parts.map((p) => ({
-      id: p.id,
-      billId: p.bill.id,
-      title: p.bill.title,
-      createdAt: p.bill.createdAt.toISOString(),
-      totalAmount: p.bill.totalAmount.toFixed(2),
-      shareAmount: p.shareAmount.toFixed(2),
-      paidByUserId: p.bill.paidByUserId,
-      billed: Boolean(p.billedInId),
+    items.map((c) => ({
+      id: c.id,
+      title: c.title,
+      amount: c.amount.toFixed(2),
+      createdAt: c.createdAt.toISOString(),
+      billed: Boolean(c.billedInId),
     }))
   );
 }

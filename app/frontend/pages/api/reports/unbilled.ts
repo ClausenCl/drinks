@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { UserRole } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
 import { json, methodNotAllowed, unauthorized } from "@backend/lib/http";
 import { getSessionUser } from "@backend/services/session";
@@ -19,6 +19,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!session) return unauthorized(res);
   if (session.role === UserRole.BEWOHNER) return unauthorized(res);
 
+  let allowedFridgeIds: string[] | null = null;
+  if (session.role === UserRole.GETRAENKEMINISTER) {
+    const perms = await prisma.ministerFridgePermission.findMany({
+      where: { userId: session.id },
+      select: { fridgeId: true },
+    });
+    allowedFridgeIds = perms.length > 0 ? perms.map((p) => p.fridgeId) : null; // null means "all" for now
+  }
+
+  const fridgeFilter =
+    allowedFridgeIds && allowedFridgeIds.length > 0
+      ? Prisma.sql`AND de.fridge_id IN (${Prisma.join(allowedFridgeIds)})`
+      : Prisma.empty;
+
   const rows = await prisma.$queryRaw<Row[]>`
     SELECT
       f.id AS "fridgeId",
@@ -30,11 +44,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     FROM drink_entries de
     JOIN fridges f ON f.id = de.fridge_id
     JOIN products p ON p.id = de.product_id
-    WHERE de.deleted = false AND de.billed_in_id IS NULL
+    WHERE de.deleted = false
+      AND de.billed_in_id IS NULL
+      ${fridgeFilter}
     GROUP BY f.id, f.name, p.id, p.name
     ORDER BY f.name ASC, p.name ASC
   `;
 
   return json(res, 200, rows);
 }
-

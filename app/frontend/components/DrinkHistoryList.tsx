@@ -6,6 +6,7 @@ export type DrinkHistoryItem = {
   quantity: number;
   priceAtTime: string;
   deleted: boolean;
+  billed?: boolean;
 };
 
 export function DrinkHistoryList(props: { items: DrinkHistoryItem[] }) {
@@ -33,4 +34,3 @@ export function DrinkHistoryList(props: { items: DrinkHistoryItem[] }) {
     </ul>
   );
 }
-

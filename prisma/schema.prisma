@@ -31,6 +31,8 @@ model House {
 
   users User[]
   billingRuns BillingRun[]
+  ministerProfiles MinisterProfile[]
+  manualCharges ManualCharge[]
 
   @@map("houses")
 }
@@ -53,11 +55,40 @@ model User {
   purchaseUndoTokens PurchaseUndoToken[]
   billingRunsCreated BillingRun[] @relation("BillingRunCreatedBy")
   billsCreated     Bill[]            @relation("BillCreatedBy")
+  billsPaid        Bill[]            @relation("BillPaidBy")
   billParticipants BillParticipant[]
   logs             Log[]
+  ministerProfile  MinisterProfile?
+  ministerFridgePermissions MinisterFridgePermission[]
+  manualCharges    ManualCharge[]
+  manualChargesCreated ManualCharge[] @relation("ManualChargeCreatedBy")
 
   @@unique([houseId, name])
   @@map("users")
+}
+
+model MinisterProfile {
+  userId  String @id @db.Uuid @map("user_id")
+  houseId String @db.Uuid @map("house_id")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  house House @relation(fields: [houseId], references: [id], onDelete: Restrict)
+
+  @@index([houseId])
+  @@map("minister_profiles")
+}
+
+model MinisterFridgePermission {
+  id      String @id @default(uuid()) @db.Uuid
+  userId  String @db.Uuid @map("user_id")
+  fridgeId String @db.Uuid @map("fridge_id")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fridge Fridge @relation(fields: [fridgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fridgeId])
+  @@index([fridgeId])
+  @@map("minister_fridge_permissions")
 }
 
 model Product {
@@ -83,6 +114,7 @@ model Fridge {
   fridgeProducts FridgeProduct[]
   drinkEntries   DrinkEntry[]
   purchases      Purchase[]
+  ministerPermissions MinisterFridgePermission[]
 
   @@map("fridges")
 }
@@ -165,6 +197,8 @@ model BillingRun {
   house     House @relation(fields: [houseId], references: [id], onDelete: Restrict)
   createdBy User  @relation("BillingRunCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
   drinkEntries DrinkEntry[]
+  billParticipants BillParticipant[]
+  manualCharges ManualCharge[]
 
   @@index([houseId, createdAt])
   @@map("billing_runs")
@@ -173,11 +207,13 @@ model BillingRun {
 model Bill {
   id              String   @id @default(uuid()) @db.Uuid
   createdByUserId String   @db.Uuid @map("created_by_user_id")
+  paidByUserId    String?  @db.Uuid @map("paid_by_user_id")
   title           String
   totalAmount     Decimal  @db.Decimal(10, 2) @map("total_amount")
   createdAt       DateTime @default(now()) @map("created_at")
 
   createdBy     User              @relation("BillCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  paidBy        User?             @relation("BillPaidBy", fields: [paidByUserId], references: [id], onDelete: Restrict)
   participants  BillParticipant[]
 
   @@index([createdByUserId, createdAt])
@@ -189,12 +225,37 @@ model BillParticipant {
   billId      String  @db.Uuid @map("bill_id")
   userId      String  @db.Uuid @map("user_id")
   shareAmount Decimal @db.Decimal(10, 2) @map("share_amount")
+  billedInId  String? @db.Uuid @map("billed_in_id")
 
   bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  billedIn BillingRun? @relation(fields: [billedInId], references: [id], onDelete: SetNull)
 
   @@unique([billId, userId])
+  @@index([userId])
+  @@index([billedInId])
   @@map("bill_participants")
+}
+
+model ManualCharge {
+  id              String   @id @default(uuid()) @db.Uuid
+  houseId         String   @db.Uuid @map("house_id")
+  userId          String   @db.Uuid @map("user_id")
+  createdByUserId String   @db.Uuid @map("created_by_user_id")
+  title           String
+  amount          Decimal  @db.Decimal(10, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  billedInId      String?  @db.Uuid @map("billed_in_id")
+
+  house     House      @relation(fields: [houseId], references: [id], onDelete: Restrict)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdBy User       @relation("ManualChargeCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  billedIn  BillingRun? @relation(fields: [billedInId], references: [id], onDelete: SetNull)
+
+  @@index([houseId, createdAt])
+  @@index([userId, createdAt])
+  @@index([billedInId])
+  @@map("manual_charges")
 }
 
 model Log {

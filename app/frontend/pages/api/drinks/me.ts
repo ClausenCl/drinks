@@ -10,8 +10,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!session) return unauthorized(res);
   if (session.role !== UserRole.BEWOHNER) return unauthorized(res);
 
+  const billed = typeof req.query.billed === "string" ? req.query.billed : "all";
+  const billedWhere =
+    billed === "unbilled" ? { billedInId: null } : billed === "billed" ? { billedInId: { not: null } } : {};
+
   const entries = await prisma.drinkEntry.findMany({
-    where: { userId: session.id },
+    where: { userId: session.id, ...billedWhere },
     orderBy: { createdAt: "desc" },
     take: 50,
     select: {
@@ -20,6 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       quantity: true,
       priceAtTime: true,
       deleted: true,
+      billedInId: true,
       fridge: { select: { name: true } },
       product: { select: { name: true } },
     },
@@ -36,6 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       quantity: e.quantity,
       priceAtTime: e.priceAtTime.toFixed(2),
       deleted: e.deleted,
+      billed: Boolean(e.billedInId),
     }))
   );
 }
