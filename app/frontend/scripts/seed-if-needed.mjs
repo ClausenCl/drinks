@@ -1,16 +1,6 @@
-import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { PrismaClient } from "@prisma/client";
 
-function resolveBin(cmd) {
-  if (cmd.includes("/") || cmd.includes("\\") || cmd.startsWith(".")) return cmd;
-  const ext = process.platform === "win32" ? ".cmd" : "";
-  const candidate = path.join(process.cwd(), "node_modules", ".bin", `${cmd}${ext}`);
-  return existsSync(candidate) ? candidate : cmd;
-}
+import { runSeed } from "./run-seed.mjs";
 
 async function main() {
   const prisma = new PrismaClient();
@@ -29,13 +19,7 @@ async function main() {
   }
 
   console.log("[seed] no admin user found; running seed");
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const seedPath = path.resolve(__dirname, "../../../prisma/seed.ts");
-
-  const tsx = resolveBin("tsx");
-  const result = spawnSync(tsx, [seedPath], { stdio: "inherit", env: process.env });
-  if (result.status !== 0) process.exit(result.status ?? 1);
+  runSeed();
 }
 
 main().catch((err) => {
