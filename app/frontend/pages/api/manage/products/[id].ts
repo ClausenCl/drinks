@@ -7,7 +7,7 @@ import { writeLog } from "@backend/services/logs";
 
 async function ministerCanEditProduct(userId: string, productId: string) {
   const perms = await prisma.ministerFridgePermission.findMany({ where: { userId }, select: { fridgeId: true } });
-  if (perms.length === 0) return true; // default allow-all
+  if (perms.length === 0) return false;
   const fridgeIds = perms.map((p) => p.fridgeId);
   const exists = await prisma.fridgeProduct.findFirst({ where: { fridgeId: { in: fridgeIds }, productId }, select: { id: true } });
   return Boolean(exists);
@@ -60,4 +60,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return json(res, 200, { ...updated, price: updated.price.toFixed(2) });
 }
-

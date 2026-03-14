@@ -18,7 +18,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let where: any = { active: true };
   if (session.role === UserRole.GETRAENKEMINISTER) {
     const allowed = await getAllowedFridges(session.id);
-    if (allowed.length > 0) where = { ...where, id: { in: allowed } };
+    if (allowed.length === 0) return json(res, 200, []);
+    where = { ...where, id: { in: allowed } };
   }
 
   const fridges = await prisma.fridge.findMany({
@@ -28,4 +29,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
   return json(res, 200, fridges);
 }
-

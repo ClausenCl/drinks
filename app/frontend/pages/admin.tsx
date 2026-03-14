@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { AppShell } from "../components/AppShell";
 import { AdminLogsTable } from "../components/AdminLogsTable";
+import { AdminFridgeCrud } from "../components/AdminFridgeCrud";
 import { FridgeManager } from "../components/FridgeManager";
 import { ManualChargeCreator } from "../components/ManualChargeCreator";
 import { BillingRuns } from "../components/BillingRuns";
@@ -19,6 +20,7 @@ export default function AdminPage() {
     <AppShell title="Admin">
       <div className="space-y-4">
         <AdminLogsTable />
+        <AdminFridgeCrud />
         <FridgeManager />
         <BillsManagerList />
         <ManualChargeCreator />

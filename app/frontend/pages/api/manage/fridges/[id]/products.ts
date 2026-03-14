@@ -7,7 +7,7 @@ import { writeLog } from "@backend/services/logs";
 
 async function ministerCanAccessFridge(userId: string, fridgeId: string) {
   const perms = await prisma.ministerFridgePermission.findMany({ where: { userId }, select: { fridgeId: true } });
-  if (perms.length === 0) return true; // default allow-all
+  if (perms.length === 0) return false;
   return perms.some((p) => p.fridgeId === fridgeId);
 }
 
@@ -49,4 +49,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return json(res, 200, { ok: true });
 }
-

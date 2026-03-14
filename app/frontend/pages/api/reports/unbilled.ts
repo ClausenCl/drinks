@@ -25,7 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: { userId: session.id },
       select: { fridgeId: true },
     });
-    allowedFridgeIds = perms.length > 0 ? perms.map((p) => p.fridgeId) : null; // null means "all" for now
+    if (perms.length === 0) return json(res, 200, []);
+    allowedFridgeIds = perms.map((p) => p.fridgeId);
   }
 
   const fridgeFilter =

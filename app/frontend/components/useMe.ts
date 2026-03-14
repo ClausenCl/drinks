@@ -6,6 +6,8 @@ export type Me = {
   role: "BEWOHNER" | "GETRAENKEMINISTER" | "ADMIN";
   houseId: string;
   hasPin?: boolean;
+  houseName?: string;
+  houseColor?: string;
 };
 
 export function useMe() {

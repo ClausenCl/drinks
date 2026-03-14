@@ -4,11 +4,15 @@ import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
 import { getSessionUser } from "@backend/services/session";
 
+function isHexColor(input: string) {
+  return /^#[0-9a-fA-F]{6}$/.test(input);
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "GET") {
     const houses = await prisma.house.findMany({
       orderBy: { name: "asc" },
-      select: { id: true, name: true },
+      select: { id: true, name: true, color: true },
     });
     return json(res, 200, houses);
   }
@@ -18,10 +22,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!session) return unauthorized(res);
     if (session.role !== UserRole.ADMIN) return unauthorized(res);
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    const colorRaw = typeof req.body?.color === "string" ? req.body.color.trim() : "";
     if (!name) return badRequest(res, "Missing name");
     const existing = await prisma.house.findFirst({ where: { name: { equals: name, mode: "insensitive" } }, select: { id: true } });
     if (existing) return badRequest(res, "HOUSE_EXISTS");
-    const created = await prisma.house.create({ data: { name }, select: { id: true, name: true } });
+
+    const color = colorRaw && isHexColor(colorRaw) ? colorRaw : undefined;
+    const created = await prisma.house.create({ data: { name, ...(color ? { color } : {}) }, select: { id: true, name: true, color: true } });
     return json(res, 201, created);
   }
 

@@ -8,7 +8,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const session = getSessionUser(req);
   if (!session) return unauthorized(res);
 
-  const user = await prisma.user.findUnique({ where: { id: session.id } });
+  const user = await prisma.user.findUnique({
+    where: { id: session.id },
+    select: { id: true, name: true, role: true, houseId: true, pinHash: true, active: true, house: { select: { name: true, color: true } } },
+  });
   if (!user || !user.active) return unauthorized(res);
   return json(res, 200, {
     id: user.id,
@@ -16,5 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     role: user.role,
     houseId: user.houseId,
     hasPin: Boolean(user.pinHash),
+    houseName: user.house.name,
+    houseColor: user.house.color,
   });
 }
