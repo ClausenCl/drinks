@@ -19,6 +19,7 @@ COPY prisma /repo/prisma
 # the locally-installed Prisma CLI.
 RUN ln -s /repo/prisma ./prisma
 RUN node scripts/with-env.mjs prisma generate --schema prisma/schema.prisma
+RUN mkdir -p public
 RUN npm run build
 
 FROM node:22-alpine AS runner
