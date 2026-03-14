@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { AppShell } from "../components/AppShell";
 import { DrinkHistoryList, type DrinkHistoryItem } from "../components/DrinkHistoryList";
+import { useMe } from "../components/useMe";
 
 export default function HistoryPage() {
   const [items, setItems] = useState<DrinkHistoryItem[]>([]);
+  const { me, loading } = useMe();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !me) void router.replace("/");
+    if (!loading && me && me.role !== "BEWOHNER") void router.replace(me.role === "ADMIN" ? "/admin" : "/manager");
+  }, [loading, me, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,4 +33,3 @@ export default function HistoryPage() {
     </AppShell>
   );
 }
-

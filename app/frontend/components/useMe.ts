@@ -5,6 +5,7 @@ export type Me = {
   name: string;
   role: "BEWOHNER" | "GETRAENKEMINISTER" | "ADMIN";
   houseId: string;
+  hasPin?: boolean;
 };
 
 export function useMe() {
@@ -33,4 +34,3 @@ export function useMe() {
 
   return { me, loading };
 }
-

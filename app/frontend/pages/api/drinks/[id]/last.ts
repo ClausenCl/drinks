@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { LogType } from "@prisma/client";
+import { LogType, UserRole } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
 import { forbidden, json, methodNotAllowed, notFound, unauthorized } from "@backend/lib/http";
 import { getSessionUser } from "@backend/services/session";
@@ -9,6 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "DELETE") return methodNotAllowed(res);
   const session = getSessionUser(req);
   if (!session) return unauthorized(res);
+  if (session.role !== UserRole.BEWOHNER) return unauthorized(res);
 
   const id = typeof req.query.id === "string" ? req.query.id : "";
   if (!id) return notFound(res);

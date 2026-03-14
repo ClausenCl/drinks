@@ -4,27 +4,23 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const houseA = await prisma.house.upsert({
-    where: { name: "Haus A" },
-    update: {},
-    create: { name: "Haus A" },
-  });
-
-  const houseB = await prisma.house.upsert({
-    where: { name: "Haus B" },
-    update: {},
-    create: { name: "Haus B" },
-  });
+  const houses = await Promise.all(
+    ["House A", "House B", "House C", "House D", "House E"].map((name) =>
+      prisma.house.upsert({ where: { name }, update: {}, create: { name } })
+    )
+  );
+  const [houseA, houseB] = houses;
 
   const adminPasswordHash = await bcrypt.hash("admin", 12);
   const managerPasswordHash = await bcrypt.hash("manager", 12);
   const residentPasswordHash = await bcrypt.hash("resident", 12);
 
   const admin = await prisma.user.upsert({
-    where: { name: "admin" },
+    where: { houseId_name: { houseId: houseA.id, name: "admin" } },
     update: {},
     create: {
       name: "admin",
+      loginName: "admin",
       passwordHash: adminPasswordHash,
       role: UserRole.ADMIN,
       houseId: houseA.id,
@@ -33,10 +29,11 @@ async function main() {
   });
 
   await prisma.user.upsert({
-    where: { name: "manager" },
+    where: { houseId_name: { houseId: houseA.id, name: "manager" } },
     update: {},
     create: {
       name: "manager",
+      loginName: "manager",
       passwordHash: managerPasswordHash,
       role: UserRole.GETRAENKEMINISTER,
       houseId: houseA.id,
@@ -45,7 +42,7 @@ async function main() {
   });
 
   await prisma.user.upsert({
-    where: { name: "resident" },
+    where: { houseId_name: { houseId: houseB.id, name: "resident" } },
     update: {},
     create: {
       name: "resident",

@@ -12,7 +12,8 @@ export default function MenuPage() {
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !me) void router.replace("/login");
+    if (!loading && !me) void router.replace("/");
+    if (!loading && me && me.role !== "BEWOHNER") void router.replace(me.role === "ADMIN" ? "/admin" : "/manager");
   }, [loading, me, router]);
 
   useEffect(() => {
@@ -51,4 +52,3 @@ export default function MenuPage() {
     </AppShell>
   );
 }
-

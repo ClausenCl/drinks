@@ -30,14 +30,17 @@ model House {
   createdAt DateTime @default(now()) @map("created_at")
 
   users User[]
+  billingRuns BillingRun[]
 
   @@map("houses")
 }
 
 model User {
   id           String   @id @default(uuid()) @db.Uuid
-  name         String   @unique
-  passwordHash String   @map("password_hash")
+  name         String
+  loginName    String?  @unique @map("login_name")
+  passwordHash String?  @map("password_hash")
+  pinHash      String?  @map("pin_hash")
   role         UserRole @default(BEWOHNER)
   houseId      String   @db.Uuid @map("house_id")
   createdAt    DateTime @default(now()) @map("created_at")
@@ -46,10 +49,14 @@ model User {
 
   house            House             @relation(fields: [houseId], references: [id], onDelete: Restrict)
   drinkEntries     DrinkEntry[]
+  purchases        Purchase[]
+  purchaseUndoTokens PurchaseUndoToken[]
+  billingRunsCreated BillingRun[] @relation("BillingRunCreatedBy")
   billsCreated     Bill[]            @relation("BillCreatedBy")
   billParticipants BillParticipant[]
   logs             Log[]
 
+  @@unique([houseId, name])
   @@map("users")
 }
 
@@ -75,6 +82,7 @@ model Fridge {
 
   fridgeProducts FridgeProduct[]
   drinkEntries   DrinkEntry[]
+  purchases      Purchase[]
 
   @@map("fridges")
 }
@@ -96,18 +104,70 @@ model DrinkEntry {
   userId      String   @db.Uuid @map("user_id")
   productId   String   @db.Uuid @map("product_id")
   fridgeId    String   @db.Uuid @map("fridge_id")
+  purchaseId  String?  @db.Uuid @map("purchase_id")
   quantity    Int      @default(1)
   priceAtTime Decimal  @db.Decimal(10, 2) @map("price_at_time")
   createdAt   DateTime @default(now()) @map("created_at")
   deleted     Boolean  @default(false)
+  billedInId  String?  @db.Uuid @map("billed_in_id")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
   fridge  Fridge  @relation(fields: [fridgeId], references: [id], onDelete: Restrict)
+  purchase Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  billedIn BillingRun? @relation(fields: [billedInId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([fridgeId, createdAt])
+  @@index([purchaseId])
+  @@index([billedInId])
   @@map("drink_entries")
+}
+
+model Purchase {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid @map("user_id")
+  fridgeId  String   @db.Uuid @map("fridge_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  fridge     Fridge      @relation(fields: [fridgeId], references: [id], onDelete: Restrict)
+  drinkEntries DrinkEntry[]
+  undoTokens PurchaseUndoToken[]
+
+  @@index([userId, createdAt])
+  @@index([fridgeId, createdAt])
+  @@map("purchases")
+}
+
+model PurchaseUndoToken {
+  token     String   @id @db.Text
+  purchaseId String  @db.Uuid @map("purchase_id")
+  userId    String   @db.Uuid @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("purchase_undo_tokens")
+}
+
+model BillingRun {
+  id              String   @id @default(uuid()) @db.Uuid
+  houseId         String   @db.Uuid @map("house_id")
+  createdByUserId String   @db.Uuid @map("created_by_user_id")
+  title           String
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  house     House @relation(fields: [houseId], references: [id], onDelete: Restrict)
+  createdBy User  @relation("BillingRunCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  drinkEntries DrinkEntry[]
+
+  @@index([houseId, createdAt])
+  @@map("billing_runs")
 }
 
 model Bill {
