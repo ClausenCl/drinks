@@ -5,6 +5,7 @@ import { ResidentConsumptionTable } from "../components/ResidentConsumptionTable
 import { FridgeManager } from "../components/FridgeManager";
 import { ManualChargeCreator } from "../components/ManualChargeCreator";
 import { BillingRuns } from "../components/BillingRuns";
+import { BillsManagerList } from "../components/BillsManagerList";
 import { useMe } from "../components/useMe";
 
 export default function ManagerPage() {
@@ -19,6 +20,7 @@ export default function ManagerPage() {
       <div className="space-y-4">
         <ResidentConsumptionTable />
         <FridgeManager />
+        <BillsManagerList />
         <ManualChargeCreator />
         <BillingRuns />
       </div>

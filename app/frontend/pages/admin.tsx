@@ -5,6 +5,7 @@ import { AdminLogsTable } from "../components/AdminLogsTable";
 import { FridgeManager } from "../components/FridgeManager";
 import { ManualChargeCreator } from "../components/ManualChargeCreator";
 import { BillingRuns } from "../components/BillingRuns";
+import { BillsManagerList } from "../components/BillsManagerList";
 import { useMe } from "../components/useMe";
 
 export default function AdminPage() {
@@ -19,6 +20,7 @@ export default function AdminPage() {
       <div className="space-y-4">
         <AdminLogsTable />
         <FridgeManager />
+        <BillsManagerList />
         <ManualChargeCreator />
         <BillingRuns />
       </div>

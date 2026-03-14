@@ -68,14 +68,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "GET") {
-    // Admin/minister overview (simple)
+    // Admin/minister overview. Ministers only see bills created by residents in their house.
     if (session.role === UserRole.BEWOHNER) return unauthorized(res);
+
+    const where =
+      session.role === UserRole.GETRAENKEMINISTER ? { createdBy: { houseId: session.houseId } } : {};
+
     const bills = await prisma.bill.findMany({
+      where,
       orderBy: { createdAt: "desc" },
-      take: 50,
-      select: { id: true, title: true, totalAmount: true, createdAt: true, createdByUserId: true, paidByUserId: true },
+      take: 100,
+      select: {
+        id: true,
+        title: true,
+        totalAmount: true,
+        createdAt: true,
+        createdBy: { select: { id: true, name: true, house: { select: { id: true, name: true } } } },
+        paidBy: { select: { id: true, name: true } },
+        _count: { select: { participants: true } },
+      },
     });
-    return json(res, 200, bills.map((b) => ({ ...b, totalAmount: b.totalAmount.toFixed(2), createdAt: b.createdAt.toISOString() })));
+
+    return json(
+      res,
+      200,
+      bills.map((b) => ({
+        id: b.id,
+        title: b.title,
+        totalAmount: b.totalAmount.toFixed(2),
+        createdAt: b.createdAt.toISOString(),
+        createdBy: { ...b.createdBy, house: b.createdBy.house },
+        paidBy: b.paidBy,
+        participantsCount: b._count.participants,
+      }))
+    );
   }
 
   return methodNotAllowed(res);
