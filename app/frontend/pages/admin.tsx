@@ -4,6 +4,7 @@ import { AppShell } from "../components/AppShell";
 import { AdminLogsTable } from "../components/AdminLogsTable";
 import { FridgeManager } from "../components/FridgeManager";
 import { ManualChargeCreator } from "../components/ManualChargeCreator";
+import { BillingRuns } from "../components/BillingRuns";
 import { useMe } from "../components/useMe";
 
 export default function AdminPage() {
@@ -19,6 +20,7 @@ export default function AdminPage() {
         <AdminLogsTable />
         <FridgeManager />
         <ManualChargeCreator />
+        <BillingRuns />
       </div>
     </AppShell>
   );

@@ -192,6 +192,7 @@ model BillingRun {
   houseId         String   @db.Uuid @map("house_id")
   createdByUserId String   @db.Uuid @map("created_by_user_id")
   title           String
+  pdfPath         String?  @map("pdf_path")
   createdAt       DateTime @default(now()) @map("created_at")
 
   house     House @relation(fields: [houseId], references: [id], onDelete: Restrict)

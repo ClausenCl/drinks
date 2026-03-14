@@ -29,8 +29,11 @@ services:
       # If you run without HTTPS in your home network, secure cookies would prevent logins from persisting.
       # Set to "true" when you put the app behind HTTPS (recommended if you ever expose it beyond LAN).
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      BILLING_PDF_DIR: /repo/app/frontend/storage/billing
     ports:
       - "3000:3000"
+    volumes:
+      - billing_pdfs:/repo/app/frontend/storage
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 10s
@@ -39,3 +42,4 @@ services:
 
 volumes:
   db_data:
+  billing_pdfs:

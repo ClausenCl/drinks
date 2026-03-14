@@ -23,8 +23,12 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/drinks?schema=public
       SESSION_SECRET: ${SESSION_SECRET:-change_me_in_production}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      BILLING_PDF_DIR: /repo/app/frontend/storage/billing
     ports:
       - "3000:3000"
+    volumes:
+      - billing_pdfs:/repo/app/frontend/storage
 
 volumes:
   db_data:
+  billing_pdfs:
