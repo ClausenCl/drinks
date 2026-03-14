@@ -153,7 +153,11 @@ From repo root:
   npm run dev
 
 Open in browser:
-  http://localhost:3000/login
+  http://localhost:3000/
+
+Notes:
+- Residents use the house picker on `/`.
+- Admin/minister login is on `/admin-login` (also linked from `/`).
 
 2.7 Basic test checklist
 ------------------------
@@ -187,6 +191,26 @@ Important:
 If the build fails with SIGKILL / OOM:
 - Increase the server/container RAM (recommended: >= 2 GB).
 - Then retry: `docker compose -f docker/docker-compose.prod.yml up -d --build`
+
+If the build fails with errors like:
+- `disk quota exceeded` (often under `/var/lib/docker` or `/root/.docker/buildx/...`)
+Then:
+1) Check disk:
+   - `df -h /`
+   - `sudo docker system df`
+2) Free space (safe, but removes build cache/images):
+   - `sudo docker builder prune -af`
+   - `sudo docker buildx prune -af`
+   - `sudo docker system prune -af`
+3) If Docker commands cannot run because disk is at 0 bytes free:
+   - Truncate container JSON logs:
+     `sudo sh -lc 'for f in /var/lib/docker/containers/*/*-json.log; do [ -f \"$f\" ] && truncate -s 0 \"$f\"; done'`
+   - Remove BuildKit cache:
+     `sudo rm -rf /var/lib/docker/buildkit/*`
+   - Then retry the prunes/build.
+
+Important permission note:
+- Getränkeminister access is scoped by `MinisterFridgePermission`. If a minister has zero permissions assigned, they will see no fridges and cannot manage products/prices until permissions are granted by Admin.
 
 
 3) Exact Build and Workings Of The App So Far
