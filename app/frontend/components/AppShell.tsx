@@ -12,8 +12,9 @@ export function AppShell(props: { title: string; children: ReactNode }) {
   const [unlockPin, setUnlockPin] = useState("");
   const [unlocking, setUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [residentUnlockedLocally, setResidentUnlockedLocally] = useState(false);
 
-  const needsResidentUnlock = me?.role === "BEWOHNER" && me.pinVerified === false;
+  const needsResidentUnlock = me?.role === "BEWOHNER" && me.pinVerified === false && !residentUnlockedLocally;
 
   const NavLink = (p: { href: string; label: string }) => (
     <Link
@@ -47,12 +48,18 @@ export function AppShell(props: { title: string; children: ReactNode }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ pin: unlockPin }),
       });
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) {
-        setUnlockError("Wrong PIN");
+        if (body?.error === "PIN_REQUIRED_SETUP") {
+          setUnlockError("PIN is not set yet. Ask admin/minister.");
+          return;
+        }
+        setUnlockError("Wrong PIN.");
         return;
       }
       setUnlockPin("");
-      await router.replace(router.asPath);
+      setMenuOpen(false);
+      setResidentUnlockedLocally(true);
     } finally {
       setUnlocking(false);
     }
