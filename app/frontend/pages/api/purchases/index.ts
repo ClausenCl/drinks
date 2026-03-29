@@ -3,6 +3,7 @@ import { LogType, UserRole } from "@prisma/client";
 import crypto from "crypto";
 import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
+import { verifyPin } from "@backend/services/pin";
 import { getSessionUser } from "@backend/services/session";
 import { writeLog } from "@backend/services/logs";
 
@@ -12,6 +13,13 @@ function isValidQuantity(x: unknown): x is number {
   return Number.isInteger(x) && (x as number) >= 1 && (x as number) <= 99;
 }
 
+function parseItem(input: unknown): { productId: string; quantity: unknown } {
+  if (!input || typeof input !== "object") return { productId: "", quantity: undefined };
+  const record = input as Record<string, unknown>;
+  const productId = typeof record.productId === "string" ? record.productId : "";
+  return { productId, quantity: record.quantity };
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return methodNotAllowed(res);
   const session = getSessionUser(req);
@@ -19,15 +27,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (session.role !== UserRole.BEWOHNER) return unauthorized(res);
 
   const fridgeId = typeof req.body?.fridgeId === "string" ? req.body.fridgeId : "";
+  const purchasePin = typeof req.body?.pin === "string" ? req.body.pin : "";
   const itemsRaw = Array.isArray(req.body?.items) ? (req.body.items as unknown[]) : [];
   if (!fridgeId) return badRequest(res, "Missing fridgeId");
 
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.id },
+    select: { id: true, role: true, active: true, pinHash: true, requirePinOnPurchase: true },
+  });
+  if (!currentUser || !currentUser.active || currentUser.role !== UserRole.BEWOHNER) return unauthorized(res);
+
+  if (currentUser.requirePinOnPurchase) {
+    if (!currentUser.pinHash) return badRequest(res, "PIN_REQUIRED_SETUP");
+    if (!/^\d{4}$/.test(purchasePin)) return badRequest(res, "PIN_INVALID");
+    const pinOk = await verifyPin(purchasePin, currentUser.pinHash);
+    if (!pinOk) return badRequest(res, "PIN_INVALID");
+  }
+
   const items: Item[] = itemsRaw
-    .map((it) => {
-      const productId = typeof (it as any)?.productId === "string" ? ((it as any).productId as string) : "";
-      const quantity = (it as any)?.quantity;
-      return { productId, quantity };
-    })
+    .map(parseItem)
     .filter((it) => it.productId && isValidQuantity(it.quantity))
     .map((it) => ({ productId: it.productId, quantity: it.quantity as number }));
 
@@ -105,4 +123,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     summary,
   });
 }
-

@@ -14,6 +14,7 @@ async function main() {
   const adminPasswordHash = await bcrypt.hash("admin", 12);
   const managerPasswordHash = await bcrypt.hash("manager", 12);
   const residentPasswordHash = await bcrypt.hash("resident", 12);
+  const residentPinHash = await bcrypt.hash("1234", 12);
 
   const admin = await prisma.user.upsert({
     where: { houseId_name: { houseId: houseA.id, name: "admin" } },
@@ -47,6 +48,8 @@ async function main() {
     create: {
       name: "resident",
       passwordHash: residentPasswordHash,
+      pinHash: residentPinHash,
+      requirePinOnPurchase: false,
       role: UserRole.BEWOHNER,
       houseId: houseB.id,
       active: true,

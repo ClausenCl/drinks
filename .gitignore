@@ -26,6 +26,3 @@ pnpm-debug.log*
 .DS_Store
 .vscode/
 .idea/
-
-# accidental nested repo (should be deleted eventually)
-drinks/

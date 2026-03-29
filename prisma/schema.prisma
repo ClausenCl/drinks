@@ -44,6 +44,7 @@ model User {
   loginName    String?  @unique @map("login_name")
   passwordHash String?  @map("password_hash")
   pinHash      String?  @map("pin_hash")
+  requirePinOnPurchase Boolean @default(false) @map("require_pin_on_purchase")
   role         UserRole @default(BEWOHNER)
   houseId      String   @db.Uuid @map("house_id")
   createdAt    DateTime @default(now()) @map("created_at")

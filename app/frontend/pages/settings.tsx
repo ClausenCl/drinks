@@ -20,7 +20,12 @@ export default function SettingsPage() {
 
   const [pin, setPin] = useState("");
   const [pinRepeat, setPinRepeat] = useState("");
+  const [currentPin, setCurrentPin] = useState("");
   const [pinStatus, setPinStatus] = useState<string | null>(null);
+
+  const [requirePinOnPurchase, setRequirePinOnPurchase] = useState(false);
+  const [securityCurrentPin, setSecurityCurrentPin] = useState("");
+  const [securityStatus, setSecurityStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !me) void router.replace("/");
@@ -31,6 +36,7 @@ export default function SettingsPage() {
     if (!me) return;
     setName(me.name);
     setHouseId(me.houseId);
+    setRequirePinOnPurchase(Boolean(me.requirePinOnPurchase));
   }, [me]);
 
   useEffect(() => {
@@ -88,31 +94,38 @@ export default function SettingsPage() {
     const res = await fetch("/api/users/me/pin", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ pin, pinRepeat }),
+      body: JSON.stringify({ action: "changePin", currentPin, pin, pinRepeat }),
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
       setPinStatus(body?.message ?? body?.error ?? "FAILED");
       return;
     }
+    setCurrentPin("");
     setPin("");
     setPinRepeat("");
     setPinStatus("Saved");
   }
 
-  async function disablePin() {
-    setPinStatus(null);
+  async function savePurchaseRequirement(e: React.FormEvent) {
+    e.preventDefault();
+    setSecurityStatus(null);
     const res = await fetch("/api/users/me/pin", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mode: "disable" }),
+      body: JSON.stringify({
+        action: "setPurchaseRequirement",
+        currentPin: securityCurrentPin,
+        requirePinOnPurchase,
+      }),
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
-      setPinStatus(body?.message ?? body?.error ?? "FAILED");
+      setSecurityStatus(body?.message ?? body?.error ?? "FAILED");
       return;
     }
-    setPinStatus("Disabled");
+    setSecurityCurrentPin("");
+    setSecurityStatus("Saved");
   }
 
   return (
@@ -159,8 +172,20 @@ export default function SettingsPage() {
 
         <form onSubmit={savePin} className="rounded-2xl border border-neutral-200 bg-white p-4">
           <div className="text-sm font-semibold">PIN</div>
-          <p className="mt-1 text-xs text-neutral-600">Optional. If set, you’ll need it to log in.</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <p className="mt-1 text-xs text-neutral-600">Required for resident login.</p>
+          <div className="mt-3 space-y-2">
+            <label className="block">
+              <div className="mb-1 text-xs font-medium text-neutral-600">Current PIN</div>
+              <input
+                className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-base tabular-nums"
+                value={currentPin}
+                onChange={(e) => setCurrentPin(e.target.value)}
+                placeholder="1234"
+                inputMode="numeric"
+              />
+            </label>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
             <label className="block">
               <div className="mb-1 text-xs font-medium text-neutral-600">New 4-digit PIN</div>
               <input
@@ -186,12 +211,35 @@ export default function SettingsPage() {
           <button type="submit" className="mt-3 w-full rounded-xl bg-black px-4 py-3 text-base font-semibold text-white">
             Save PIN
           </button>
-          <button type="button" onClick={() => void disablePin()} className="mt-2 w-full rounded-xl bg-neutral-100 px-4 py-3 text-base font-semibold">
-            Disable PIN
+        </form>
+
+        <form onSubmit={savePurchaseRequirement} className="rounded-2xl border border-neutral-200 bg-white p-4">
+          <div className="text-sm font-semibold">Purchase security</div>
+          <p className="mt-1 text-xs text-neutral-600">Choose whether purchases also require PIN confirmation.</p>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={requirePinOnPurchase}
+              onChange={(e) => setRequirePinOnPurchase(e.target.checked)}
+            />
+            Ask for PIN when buying drinks
+          </label>
+          <label className="mt-3 block">
+            <div className="mb-1 text-xs font-medium text-neutral-600">Current PIN</div>
+            <input
+              className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-base tabular-nums"
+              value={securityCurrentPin}
+              onChange={(e) => setSecurityCurrentPin(e.target.value)}
+              placeholder="1234"
+              inputMode="numeric"
+            />
+          </label>
+          {securityStatus ? <div className="mt-3 text-sm text-neutral-700">{securityStatus}</div> : null}
+          <button type="submit" className="mt-3 w-full rounded-xl bg-black px-4 py-3 text-base font-semibold text-white">
+            Save purchase security
           </button>
         </form>
       </div>
     </AppShell>
   );
 }
-

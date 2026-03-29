@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { AppShell } from "../components/AppShell";
 import { DrinkHistoryList, type DrinkHistoryItem } from "../components/DrinkHistoryList";
@@ -12,6 +12,9 @@ export default function HistoryPage() {
   const [billShares, setBillShares] = useState<BillShare[]>([]);
   const [charges, setCharges] = useState<ManualCharge[]>([]);
   const [tab, setTab] = useState<"unbilled" | "billed">("unbilled");
+  const [query, setQuery] = useState("");
+  const [fridgeFilter, setFridgeFilter] = useState("");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const { me, loading } = useMe();
   const router = useRouter();
 
@@ -46,6 +49,39 @@ export default function HistoryPage() {
     };
   }, [tab]);
 
+  const normalizedQuery = query.trim().toLowerCase();
+  const sortFactor = sortOrder === "newest" ? -1 : 1;
+
+  const fridgeOptions = useMemo(() => Array.from(new Set(items.map((i) => i.fridgeName))).sort((a, b) => a.localeCompare(b)), [items]);
+
+  const filteredDrinks = useMemo(() => {
+    return items
+      .filter((item) => {
+        if (fridgeFilter && item.fridgeName !== fridgeFilter) return false;
+        if (!normalizedQuery) return true;
+        return item.productName.toLowerCase().includes(normalizedQuery) || item.fridgeName.toLowerCase().includes(normalizedQuery);
+      })
+      .sort((a, b) => (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * sortFactor);
+  }, [fridgeFilter, items, normalizedQuery, sortFactor]);
+
+  const filteredBillShares = useMemo(() => {
+    return billShares
+      .filter((bill) => {
+        if (!normalizedQuery) return true;
+        return bill.title.toLowerCase().includes(normalizedQuery);
+      })
+      .sort((a, b) => (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * sortFactor);
+  }, [billShares, normalizedQuery, sortFactor]);
+
+  const filteredCharges = useMemo(() => {
+    return charges
+      .filter((charge) => {
+        if (!normalizedQuery) return true;
+        return charge.title.toLowerCase().includes(normalizedQuery);
+      })
+      .sort((a, b) => (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * sortFactor);
+  }, [charges, normalizedQuery, sortFactor]);
+
   return (
     <AppShell title="History">
       <div className="space-y-4">
@@ -67,17 +103,51 @@ export default function HistoryPage() {
         </div>
 
         <section className="space-y-2">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-3">
+            <label className="block">
+              <div className="mb-1 text-xs font-medium text-neutral-600">Search</div>
+              <input
+                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Find drinks, event bills or charges…"
+              />
+            </label>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <label className="block">
+                <div className="mb-1 text-xs font-medium text-neutral-600">Fridge (drinks)</div>
+                <select className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm" value={fridgeFilter} onChange={(e) => setFridgeFilter(e.target.value)}>
+                  <option value="">All fridges</option>
+                  {fridgeOptions.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <div className="mb-1 text-xs font-medium text-neutral-600">Order</div>
+                <select className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm" value={sortOrder} onChange={(e) => setSortOrder(e.target.value as "newest" | "oldest")}>
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-2">
           <div className="text-sm font-semibold">Drinks</div>
-          <DrinkHistoryList items={items} />
+          <DrinkHistoryList items={filteredDrinks} />
         </section>
 
         <section className="space-y-2">
           <div className="text-sm font-semibold">Event bills</div>
-          {billShares.length === 0 ? (
+          {filteredBillShares.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">No entries.</div>
           ) : (
             <ul className="space-y-2">
-              {billShares.map((b) => (
+              {filteredBillShares.map((b) => (
                 <li key={b.id} className="rounded-2xl border border-neutral-200 bg-white p-3">
                   <div className="flex items-baseline justify-between gap-3">
                     <div className="min-w-0 truncate text-sm font-semibold">{b.title}</div>
@@ -92,11 +162,11 @@ export default function HistoryPage() {
 
         <section className="space-y-2">
           <div className="text-sm font-semibold">Manual charges</div>
-          {charges.length === 0 ? (
+          {filteredCharges.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">No entries.</div>
           ) : (
             <ul className="space-y-2">
-              {charges.map((c) => (
+              {filteredCharges.map((c) => (
                 <li key={c.id} className="rounded-2xl border border-neutral-200 bg-white p-3">
                   <div className="flex items-baseline justify-between gap-3">
                     <div className="min-w-0 truncate text-sm font-semibold">{c.title}</div>

@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 
-type Member = { id: string; name: string; hasPin: boolean };
+type Member = { id: string; name: string };
 type House = { id: string; name: string };
 
 function normalizeName(input: string) {
@@ -22,6 +22,7 @@ export default function HouseMembersPage() {
   const [newName, setNewName] = useState("");
   const [newPin, setNewPin] = useState("");
   const [newPinRepeat, setNewPinRepeat] = useState("");
+  const [newRequirePinOnPurchase, setNewRequirePinOnPurchase] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [pinFor, setPinFor] = useState<Member | null>(null);
@@ -61,20 +62,18 @@ export default function HouseMembersPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ userId: member.id, pin: pinValue }),
     });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string; message?: string } | null;
+      return body?.error ?? body?.message ?? "LOGIN_FAILED";
+    }
     await router.push(next || "/menu");
-    return true;
+    return null;
   }
 
   async function onPick(member: Member) {
-    if (member.hasPin) {
-      setPinFor(member);
-      setPin("");
-      setPinError(null);
-      return;
-    }
-    const ok = await login(member, "");
-    if (!ok) alert("Login failed");
+    setPinFor(member);
+    setPin("");
+    setPinError(null);
   }
 
   async function onSubmitPin(e: React.FormEvent) {
@@ -83,8 +82,13 @@ export default function HouseMembersPage() {
     setPinError(null);
     setPinLoading(true);
     try {
-      const ok = await login(pinFor, pin);
-      if (!ok) setPinError("Wrong PIN");
+      const error = await login(pinFor, pin);
+      if (!error) return;
+      if (error === "PIN_REQUIRED_SETUP") {
+        setPinError("PIN setup required. Ask an admin/minister.");
+        return;
+      }
+      setPinError("Wrong PIN");
     } finally {
       setPinLoading(false);
     }
@@ -102,7 +106,7 @@ export default function HouseMembersPage() {
     const res = await fetch(`/api/houses/${houseId}/members`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, pin: newPin, pinRepeat: newPinRepeat }),
+      body: JSON.stringify({ name, pin: newPin, pinRepeat: newPinRepeat, requirePinOnPurchase: newRequirePinOnPurchase }),
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
@@ -112,6 +116,7 @@ export default function HouseMembersPage() {
     setNewName("");
     setNewPin("");
     setNewPinRepeat("");
+    setNewRequirePinOnPurchase(false);
     setCreating(false);
     const listRes = await fetch(`/api/houses/${houseId}/members`);
     if (listRes.ok) setMembers((await listRes.json()) as Member[]);
@@ -155,7 +160,6 @@ export default function HouseMembersPage() {
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold">{m.name}</div>
-                  <div className="text-xs text-neutral-500">{m.hasPin ? "PIN required" : "No PIN"}</div>
                 </div>
                 <div className="text-sm text-neutral-500">→</div>
               </button>
@@ -188,7 +192,7 @@ export default function HouseMembersPage() {
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">
-                  <div className="mb-1 text-xs font-medium text-neutral-600">4-digit PIN (optional)</div>
+                  <div className="mb-1 text-xs font-medium text-neutral-600">4-digit PIN (required)</div>
                   <input
                     className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-base tabular-nums"
                     value={newPin}
@@ -208,6 +212,14 @@ export default function HouseMembersPage() {
                   />
                 </label>
               </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={newRequirePinOnPurchase}
+                  onChange={(e) => setNewRequirePinOnPurchase(e.target.checked)}
+                />
+                Ask for code when purchasing drinks
+              </label>
 
               {createError ? <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{createError}</div> : null}
 
@@ -257,4 +269,3 @@ export default function HouseMembersPage() {
     </div>
   );
 }
-

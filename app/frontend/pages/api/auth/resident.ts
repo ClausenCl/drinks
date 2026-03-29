@@ -15,12 +15,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || !user.active) return unauthorized(res);
   if (user.role !== UserRole.BEWOHNER) return unauthorized(res);
-
-  if (user.pinHash) {
-    if (!/^\d{4}$/.test(pin)) return unauthorized(res);
-    const ok = await verifyPin(pin, user.pinHash);
-    if (!ok) return unauthorized(res);
-  }
+  if (!user.pinHash) return json(res, 401, { error: "PIN_REQUIRED_SETUP" });
+  if (!/^\d{4}$/.test(pin)) return unauthorized(res);
+  const ok = await verifyPin(pin, user.pinHash);
+  if (!ok) return unauthorized(res);
 
   res.setHeader(
     "Set-Cookie",
@@ -28,4 +26,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   );
   return json(res, 200, { id: user.id, name: user.name, role: user.role, houseId: user.houseId });
 }
-

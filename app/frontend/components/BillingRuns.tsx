@@ -3,7 +3,7 @@ import { useMe } from "./useMe";
 
 type BillingRun = { id: string; houseId: string; houseName: string; title: string; createdAt: string; hasPdf: boolean };
 type House = { id: string; name: string };
-type Member = { id: string; name: string; hasPin: boolean };
+type Member = { id: string; name: string };
 
 export function BillingRuns() {
   const { me } = useMe();
@@ -175,4 +175,3 @@ export function BillingRuns() {
     </div>
   );
 }
-

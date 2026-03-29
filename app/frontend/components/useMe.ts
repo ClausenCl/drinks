@@ -5,7 +5,7 @@ export type Me = {
   name: string;
   role: "BEWOHNER" | "GETRAENKEMINISTER" | "ADMIN";
   houseId: string;
-  hasPin?: boolean;
+  requirePinOnPurchase?: boolean;
   houseName?: string;
   houseColor?: string;
 };

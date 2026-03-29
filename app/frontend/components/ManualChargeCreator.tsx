@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMe } from "./useMe";
 
-type Member = { id: string; name: string; hasPin: boolean };
+type Member = { id: string; name: string };
 type House = { id: string; name: string };
 
 export function ManualChargeCreator() {
@@ -24,7 +24,9 @@ export function ManualChargeCreator() {
         const data = (await res.json()) as House[];
         if (cancelled) return;
         setHouses(data);
-        if (!houseId && data[0]) setHouseId(data[0].id);
+        if (data[0]) {
+          setHouseId((current) => current || data[0].id);
+        }
       })();
       return () => {
         cancelled = true;

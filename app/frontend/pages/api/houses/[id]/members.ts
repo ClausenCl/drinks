@@ -16,13 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const members = await prisma.user.findMany({
       where: { houseId, role: UserRole.BEWOHNER, active: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, pinHash: true },
+      select: { id: true, name: true },
     });
-    return json(
-      res,
-      200,
-      members.map((m) => ({ id: m.id, name: m.name, hasPin: Boolean(m.pinHash) }))
-    );
+    return json(res, 200, members.map((m) => ({ id: m.id, name: m.name })));
   }
 
   if (req.method === "POST") {
@@ -30,6 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const name = normalizeName(nameRaw);
     const pin = typeof req.body?.pin === "string" ? req.body.pin : "";
     const pinRepeat = typeof req.body?.pinRepeat === "string" ? req.body.pinRepeat : "";
+    const requirePinOnPurchase = Boolean(req.body?.requirePinOnPurchase);
     if (!name) return badRequest(res, "Missing name");
 
     const house = await prisma.house.findUnique({ where: { id: houseId } });
@@ -41,12 +38,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     if (existing) return badRequest(res, "NAME_EXISTS_IN_HOUSE");
 
-    let pinHash: string | null = null;
-    if (pin || pinRepeat) {
-      if (!/^\d{4}$/.test(pin)) return badRequest(res, "PIN_INVALID");
-      if (pin !== pinRepeat) return badRequest(res, "PIN_MISMATCH");
-      pinHash = await hashPin(pin);
-    }
+    if (!/^\d{4}$/.test(pin)) return badRequest(res, "PIN_INVALID");
+    if (pin !== pinRepeat) return badRequest(res, "PIN_MISMATCH");
+    const pinHash = await hashPin(pin);
 
     const created = await prisma.user.create({
       data: {
@@ -55,6 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         houseId,
         passwordHash: null,
         pinHash,
+        requirePinOnPurchase,
         active: true,
       },
       select: { id: true, name: true, houseId: true },
@@ -64,4 +59,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return methodNotAllowed(res);
 }
-

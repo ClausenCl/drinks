@@ -16,7 +16,7 @@ Self-hosted drinks tracking app (dormitory use), built with Next.js + PostgreSQL
 Seeded users:
 - `admin` / `admin`
 - `manager` / `manager`
-- `resident` / `resident`
+- resident account: name `resident` with PIN `1234` (resident flow via house picker)
 
 Usernames are treated case-insensitively on login (so `Admin` works too).
 
@@ -24,7 +24,8 @@ Usernames are treated case-insensitively on login (so `Admin` works too).
 
 - Residents:
   - Open `/` and pick a house (A–E).
-  - Pick your name (or create a new member with optional 4-digit PIN).
+  - Pick your name and enter your PIN.
+  - New member creation requires a 4-digit PIN and supports an optional “ask PIN on purchase” mode.
 - Admin / Getränkeminister:
   - Open `/` → click the small “Admin / Getränkeminister login” link (or go to `/admin-login`).
   - Sign in with `loginName` + password (admins/ministers are not drink-consumer accounts).

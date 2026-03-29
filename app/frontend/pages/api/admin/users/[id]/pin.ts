@@ -18,18 +18,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!target || target.role !== UserRole.BEWOHNER) return badRequest(res, "Not a resident");
   if (session.role === UserRole.GETRAENKEMINISTER && target.houseId !== session.houseId) return unauthorized(res);
 
-  const mode = typeof req.body?.mode === "string" ? req.body.mode : "set";
-  if (mode === "disable") {
-    await prisma.user.update({ where: { id: userId }, data: { pinHash: null } });
-    return json(res, 200, { ok: true, hasPin: false });
-  }
-
   const pin = typeof req.body?.pin === "string" ? req.body.pin : "";
   const pinRepeat = typeof req.body?.pinRepeat === "string" ? req.body.pinRepeat : "";
   if (!/^\d{4}$/.test(pin)) return badRequest(res, "PIN_INVALID");
   if (pin !== pinRepeat) return badRequest(res, "PIN_MISMATCH");
   const pinHash = await hashPin(pin);
   await prisma.user.update({ where: { id: userId }, data: { pinHash } });
-  return json(res, 200, { ok: true, hasPin: true });
+  return json(res, 200, { ok: true });
 }
-
