@@ -3,9 +3,9 @@ DELETE FROM "purchase_undo_tokens";
 DELETE FROM "drink_entries";
 DELETE FROM "purchases";
 
+DROP TABLE IF EXISTS "drink_entries";
 DROP TABLE IF EXISTS "fridge_products";
 DROP TABLE IF EXISTS "products";
-DROP TABLE IF EXISTS "drink_entries";
 
 CREATE TABLE "fridge_items" (
   "id" UUID NOT NULL,
