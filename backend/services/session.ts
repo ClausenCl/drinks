@@ -10,6 +10,7 @@ type SessionPayload = {
   name: string;
   role: UserRole;
   houseId: string;
+  pinVerified: boolean;
   exp: number;
 };
 
@@ -34,9 +35,9 @@ function sign(data: string) {
   return crypto.createHmac("sha256", secret).update(data).digest("base64url");
 }
 
-export function createSessionCookie(payload: Omit<SessionPayload, "exp">, ttlSeconds = 60 * 60 * 24 * 14) {
+export function createSessionCookie(payload: Omit<SessionPayload, "exp" | "pinVerified"> & { pinVerified?: boolean }, ttlSeconds = 60 * 60 * 24 * 14) {
   const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
-  const json = JSON.stringify({ ...payload, exp } satisfies SessionPayload);
+  const json = JSON.stringify({ ...payload, pinVerified: payload.pinVerified ?? true, exp } satisfies SessionPayload);
   const data = base64UrlEncode(json);
   const sig = sign(data);
   const value = `${data}.${sig}`;
@@ -79,5 +80,5 @@ export function getSessionUser(req: NextApiRequest) {
 
   if (typeof payload.exp !== "number" || payload.exp < Math.floor(Date.now() / 1000)) return null;
   if (!payload.id || !payload.houseId || !payload.name) return null;
-  return { id: payload.id, name: payload.name, role: payload.role, houseId: payload.houseId };
+  return { id: payload.id, name: payload.name, role: payload.role, houseId: payload.houseId, pinVerified: payload.pinVerified ?? true };
 }

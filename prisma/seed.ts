@@ -56,18 +56,6 @@ async function main() {
     },
   });
 
-  const beer = await prisma.product.upsert({
-    where: { name: "Bier" },
-    update: { price: "1.50" },
-    create: { name: "Bier", price: "1.50", active: true },
-  });
-
-  const cola = await prisma.product.upsert({
-    where: { name: "Cola" },
-    update: { price: "1.00" },
-    create: { name: "Cola", price: "1.00", active: true },
-  });
-
   const fridge = await prisma.fridge.upsert({
     where: { id: "00000000-0000-0000-0000-000000000001" },
     update: { name: "Kueche" },
@@ -79,17 +67,19 @@ async function main() {
     },
   });
 
-  await prisma.fridgeProduct.upsert({
-    where: { fridgeId_productId: { fridgeId: fridge.id, productId: beer.id } },
-    update: {},
-    create: { fridgeId: fridge.id, productId: beer.id },
+  const existingItems = await prisma.fridgeItem.findMany({
+    where: { fridgeId: fridge.id },
+    select: { id: true },
+    take: 1,
   });
-
-  await prisma.fridgeProduct.upsert({
-    where: { fridgeId_productId: { fridgeId: fridge.id, productId: cola.id } },
-    update: {},
-    create: { fridgeId: fridge.id, productId: cola.id },
-  });
+  if (existingItems.length === 0) {
+    await prisma.fridgeItem.createMany({
+      data: [
+        { fridgeId: fridge.id, name: "Bier", price: "1.50", active: true },
+        { fridgeId: fridge.id, name: "Cola", price: "1.00", active: true },
+      ],
+    });
+  }
 
   // Create a single initial log entry (idempotent enough for repeated seeding).
   const anyPriceChangeLog = await prisma.log.findFirst({ where: { type: LogType.PRICE_CHANGED } });

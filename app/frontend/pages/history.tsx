@@ -6,15 +6,28 @@ import { useMe } from "../components/useMe";
 
 type BillShare = { id: string; title: string; createdAt: string; shareAmount: string; billed: boolean };
 type ManualCharge = { id: string; title: string; createdAt: string; amount: string; billed: boolean };
+type InvoiceSummary = { id: string; title: string; createdAt: string; total: string };
+type InvoiceDetail = {
+  id: string;
+  title: string;
+  createdAt: string;
+  total: string;
+  drinks: { id: string; createdAt: string; fridgeName: string; itemName: string; quantity: number; unitPrice: string; total: string }[];
+  eventBills: { id: string; billId: string; title: string; createdAt: string; total: string }[];
+  manualCharges: { id: string; title: string; createdAt: string; total: string }[];
+};
 
 export default function HistoryPage() {
   const [items, setItems] = useState<DrinkHistoryItem[]>([]);
   const [billShares, setBillShares] = useState<BillShare[]>([]);
   const [charges, setCharges] = useState<ManualCharge[]>([]);
   const [tab, setTab] = useState<"unbilled" | "billed">("unbilled");
-  const [query, setQuery] = useState("");
-  const [fridgeFilter, setFridgeFilter] = useState("");
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [unbilledTotal, setUnbilledTotal] = useState("0.00");
+  const [invoices, setInvoices] = useState<InvoiceSummary[]>([]);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("");
+  const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetail | null>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
   const { me, loading } = useMe();
   const router = useRouter();
 
@@ -26,10 +39,32 @@ export default function HistoryPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setOverviewLoading(true);
+      try {
+        const res = await fetch("/api/history/overview");
+        if (!res.ok) return;
+        const data = (await res.json()) as { unbilledTotal: string; invoices: InvoiceSummary[] };
+        if (cancelled) return;
+        setUnbilledTotal(data.unbilledTotal);
+        setInvoices(data.invoices);
+        setSelectedInvoiceId((prev) => prev || data.invoices[0]?.id || "");
+      } finally {
+        if (!cancelled) setOverviewLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (tab !== "unbilled") return;
+    let cancelled = false;
+    (async () => {
       const [dRes, bRes, cRes] = await Promise.all([
-        fetch(`/api/drinks/me?billed=${tab}`),
-        fetch(`/api/bills/me?billed=${tab}`),
-        fetch(`/api/manual-charges/me?billed=${tab}`),
+        fetch("/api/drinks/me?billed=unbilled"),
+        fetch("/api/bills/me?billed=unbilled"),
+        fetch("/api/manual-charges/me?billed=unbilled"),
       ]);
       if (dRes.ok) {
         const data = (await dRes.json()) as DrinkHistoryItem[];
@@ -49,38 +84,32 @@ export default function HistoryPage() {
     };
   }, [tab]);
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const sortFactor = sortOrder === "newest" ? -1 : 1;
+  useEffect(() => {
+    if (tab !== "billed" || !selectedInvoiceId) {
+      setInvoiceDetail(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setInvoiceLoading(true);
+      try {
+        const res = await fetch(`/api/history/invoices/${selectedInvoiceId}`);
+        if (!res.ok) {
+          if (!cancelled) setInvoiceDetail(null);
+          return;
+        }
+        const data = (await res.json()) as InvoiceDetail;
+        if (!cancelled) setInvoiceDetail(data);
+      } finally {
+        if (!cancelled) setInvoiceLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedInvoiceId, tab]);
 
-  const fridgeOptions = useMemo(() => Array.from(new Set(items.map((i) => i.fridgeName))).sort((a, b) => a.localeCompare(b)), [items]);
-
-  const filteredDrinks = useMemo(() => {
-    return items
-      .filter((item) => {
-        if (fridgeFilter && item.fridgeName !== fridgeFilter) return false;
-        if (!normalizedQuery) return true;
-        return item.productName.toLowerCase().includes(normalizedQuery) || item.fridgeName.toLowerCase().includes(normalizedQuery);
-      })
-      .sort((a, b) => (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * sortFactor);
-  }, [fridgeFilter, items, normalizedQuery, sortFactor]);
-
-  const filteredBillShares = useMemo(() => {
-    return billShares
-      .filter((bill) => {
-        if (!normalizedQuery) return true;
-        return bill.title.toLowerCase().includes(normalizedQuery);
-      })
-      .sort((a, b) => (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * sortFactor);
-  }, [billShares, normalizedQuery, sortFactor]);
-
-  const filteredCharges = useMemo(() => {
-    return charges
-      .filter((charge) => {
-        if (!normalizedQuery) return true;
-        return charge.title.toLowerCase().includes(normalizedQuery);
-      })
-      .sort((a, b) => (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * sortFactor);
-  }, [charges, normalizedQuery, sortFactor]);
+  const selectedInvoiceTitle = useMemo(() => invoices.find((i) => i.id === selectedInvoiceId)?.title ?? "", [invoices, selectedInvoiceId]);
 
   return (
     <AppShell title="History">
@@ -102,82 +131,156 @@ export default function HistoryPage() {
           </button>
         </div>
 
-        <section className="space-y-2">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-3">
-            <label className="block">
-              <div className="mb-1 text-xs font-medium text-neutral-600">Search</div>
-              <input
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Find drinks, event bills or charges…"
-              />
-            </label>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <label className="block">
-                <div className="mb-1 text-xs font-medium text-neutral-600">Fridge (drinks)</div>
-                <select className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm" value={fridgeFilter} onChange={(e) => setFridgeFilter(e.target.value)}>
-                  <option value="">All fridges</option>
-                  {fridgeOptions.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <div className="mb-1 text-xs font-medium text-neutral-600">Order</div>
-                <select className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm" value={sortOrder} onChange={(e) => setSortOrder(e.target.value as "newest" | "oldest")}>
-                  <option value="newest">Newest first</option>
-                  <option value="oldest">Oldest first</option>
-                </select>
-              </label>
+        {tab === "unbilled" ? (
+          <>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+              <div className="text-xs text-neutral-600">If invoiced now</div>
+              <div className="mt-1 text-2xl font-bold tabular-nums">{unbilledTotal} EUR</div>
             </div>
-          </div>
-        </section>
 
-        <section className="space-y-2">
-          <div className="text-sm font-semibold">Drinks</div>
-          <DrinkHistoryList items={filteredDrinks} />
-        </section>
+            <section className="space-y-2">
+              <div className="text-sm font-semibold">Drinks</div>
+              <DrinkHistoryList items={items} />
+            </section>
 
-        <section className="space-y-2">
-          <div className="text-sm font-semibold">Event bills</div>
-          {filteredBillShares.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">No entries.</div>
-          ) : (
-            <ul className="space-y-2">
-              {filteredBillShares.map((b) => (
-                <li key={b.id} className="rounded-2xl border border-neutral-200 bg-white p-3">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="min-w-0 truncate text-sm font-semibold">{b.title}</div>
-                    <div className="shrink-0 tabular-nums text-sm text-neutral-700">{b.shareAmount}</div>
+            <section className="space-y-2">
+              <div className="text-sm font-semibold">Event bills</div>
+              {billShares.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">No entries.</div>
+              ) : (
+                <ul className="space-y-2">
+                  {billShares.map((b) => (
+                    <li key={b.id} className="rounded-2xl border border-neutral-200 bg-white p-3">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <div className="min-w-0 truncate text-sm font-semibold">{b.title}</div>
+                        <div className="shrink-0 tabular-nums text-sm text-neutral-700">{b.shareAmount}</div>
+                      </div>
+                      <div className="mt-1 text-xs text-neutral-500">{new Date(b.createdAt).toLocaleString()}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="space-y-2">
+              <div className="text-sm font-semibold">Manual charges</div>
+              {charges.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">No entries.</div>
+              ) : (
+                <ul className="space-y-2">
+                  {charges.map((c) => (
+                    <li key={c.id} className="rounded-2xl border border-neutral-200 bg-white p-3">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <div className="min-w-0 truncate text-sm font-semibold">{c.title}</div>
+                        <div className="shrink-0 tabular-nums text-sm text-neutral-700">{c.amount}</div>
+                      </div>
+                      <div className="mt-1 text-xs text-neutral-500">{new Date(c.createdAt).toLocaleString()}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
+        ) : (
+          <>
+            <section className="space-y-2">
+              <div className="text-sm font-semibold">Invoices</div>
+              {overviewLoading ? (
+                <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">Loading invoices…</div>
+              ) : invoices.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">No invoices yet.</div>
+              ) : (
+                <ul className="space-y-2">
+                  {invoices.map((invoice) => (
+                    <li key={invoice.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedInvoiceId(invoice.id)}
+                        className={[
+                          "w-full rounded-2xl border px-3 py-3 text-left",
+                          selectedInvoiceId === invoice.id ? "border-black bg-neutral-100" : "border-neutral-200 bg-white",
+                        ].join(" ")}
+                      >
+                        <div className="flex items-baseline justify-between gap-3">
+                          <div className="min-w-0 truncate text-sm font-semibold">{invoice.title}</div>
+                          <div className="shrink-0 tabular-nums text-sm text-neutral-700">{invoice.total}</div>
+                        </div>
+                        <div className="mt-1 text-xs text-neutral-500">{new Date(invoice.createdAt).toLocaleString()}</div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="space-y-2">
+              <div className="text-sm font-semibold">Invoice details {selectedInvoiceTitle ? `· ${selectedInvoiceTitle}` : ""}</div>
+              {invoiceLoading ? (
+                <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">Loading details…</div>
+              ) : !invoiceDetail ? (
+                <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">Select an invoice.</div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+                    <div className="text-xs text-neutral-600">Invoice total</div>
+                    <div className="mt-1 text-lg font-semibold tabular-nums">{invoiceDetail.total} EUR</div>
+                    <div className="mt-1 text-xs text-neutral-500">{new Date(invoiceDetail.createdAt).toLocaleString()}</div>
                   </div>
-                  <div className="mt-1 text-xs text-neutral-500">{new Date(b.createdAt).toLocaleString()}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
 
-        <section className="space-y-2">
-          <div className="text-sm font-semibold">Manual charges</div>
-          {filteredCharges.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">No entries.</div>
-          ) : (
-            <ul className="space-y-2">
-              {filteredCharges.map((c) => (
-                <li key={c.id} className="rounded-2xl border border-neutral-200 bg-white p-3">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="min-w-0 truncate text-sm font-semibold">{c.title}</div>
-                    <div className="shrink-0 tabular-nums text-sm text-neutral-700">{c.amount}</div>
+                  <div className="rounded-2xl border border-neutral-200 bg-white p-3">
+                    <div className="text-sm font-semibold">Drinks</div>
+                    {invoiceDetail.drinks.length === 0 ? (
+                      <div className="mt-2 text-sm text-neutral-600">No drinks.</div>
+                    ) : (
+                      <ul className="mt-2 space-y-2">
+                        {invoiceDetail.drinks.map((drink) => (
+                          <li key={drink.id} className="flex items-baseline justify-between gap-3 text-sm">
+                            <div className="min-w-0 truncate">
+                              {drink.quantity}× {drink.itemName} · {drink.fridgeName}
+                            </div>
+                            <div className="shrink-0 tabular-nums">{drink.total}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <div className="mt-1 text-xs text-neutral-500">{new Date(c.createdAt).toLocaleString()}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+
+                  <div className="rounded-2xl border border-neutral-200 bg-white p-3">
+                    <div className="text-sm font-semibold">Event bills</div>
+                    {invoiceDetail.eventBills.length === 0 ? (
+                      <div className="mt-2 text-sm text-neutral-600">No event bills.</div>
+                    ) : (
+                      <ul className="mt-2 space-y-2">
+                        {invoiceDetail.eventBills.map((bill) => (
+                          <li key={bill.id} className="flex items-baseline justify-between gap-3 text-sm">
+                            <div className="min-w-0 truncate">{bill.title}</div>
+                            <div className="shrink-0 tabular-nums">{bill.total}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="rounded-2xl border border-neutral-200 bg-white p-3">
+                    <div className="text-sm font-semibold">Manual charges</div>
+                    {invoiceDetail.manualCharges.length === 0 ? (
+                      <div className="mt-2 text-sm text-neutral-600">No manual charges.</div>
+                    ) : (
+                      <ul className="mt-2 space-y-2">
+                        {invoiceDetail.manualCharges.map((charge) => (
+                          <li key={charge.id} className="flex items-baseline justify-between gap-3 text-sm">
+                            <div className="min-w-0 truncate">{charge.title}</div>
+                            <div className="shrink-0 tabular-nums">{charge.total}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+          </>
+        )}
       </div>
     </AppShell>
   );

@@ -3,7 +3,6 @@ import { LogType, UserRole } from "@prisma/client";
 import crypto from "crypto";
 import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
-import { verifyPin } from "@backend/services/pin";
 import { getSessionUser } from "@backend/services/session";
 import { writeLog } from "@backend/services/logs";
 
@@ -27,22 +26,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (session.role !== UserRole.BEWOHNER) return unauthorized(res);
 
   const fridgeId = typeof req.body?.fridgeId === "string" ? req.body.fridgeId : "";
-  const purchasePin = typeof req.body?.pin === "string" ? req.body.pin : "";
   const itemsRaw = Array.isArray(req.body?.items) ? (req.body.items as unknown[]) : [];
   if (!fridgeId) return badRequest(res, "Missing fridgeId");
 
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.id },
-    select: { id: true, role: true, active: true, pinHash: true, requirePinOnPurchase: true },
-  });
+  const currentUser = await prisma.user.findUnique({ where: { id: session.id }, select: { id: true, role: true, active: true } });
   if (!currentUser || !currentUser.active || currentUser.role !== UserRole.BEWOHNER) return unauthorized(res);
-
-  if (currentUser.requirePinOnPurchase) {
-    if (!currentUser.pinHash) return badRequest(res, "PIN_REQUIRED_SETUP");
-    if (!/^\d{4}$/.test(purchasePin)) return badRequest(res, "PIN_INVALID");
-    const pinOk = await verifyPin(purchasePin, currentUser.pinHash);
-    if (!pinOk) return badRequest(res, "PIN_INVALID");
-  }
 
   const items: Item[] = itemsRaw
     .map(parseItem)
@@ -54,18 +42,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const fridge = await prisma.fridge.findUnique({ where: { id: fridgeId } });
   if (!fridge || !fridge.active) return badRequest(res, "Unknown fridge");
 
-  const productIds = Array.from(new Set(items.map((i) => i.productId)));
-  const [products, fps] = await Promise.all([
-    prisma.product.findMany({ where: { id: { in: productIds }, active: true } }),
-    prisma.fridgeProduct.findMany({ where: { fridgeId, productId: { in: productIds } }, select: { productId: true } }),
-  ]);
-
-  const allowed = new Set(fps.map((fp) => fp.productId));
-  const byId = new Map(products.map((p) => [p.id, p]));
+  const itemIds = Array.from(new Set(items.map((i) => i.productId)));
+  const fridgeItems = await prisma.fridgeItem.findMany({
+    where: { id: { in: itemIds }, fridgeId, active: true },
+    select: { id: true, name: true, price: true },
+  });
+  const byId = new Map(fridgeItems.map((item) => [item.id, item]));
 
   for (const it of items) {
-    if (!allowed.has(it.productId)) return badRequest(res, "Product not available in this fridge");
-    if (!byId.has(it.productId)) return badRequest(res, "Unknown product");
+    if (!byId.has(it.productId)) return badRequest(res, "Item not available in this fridge");
   }
 
   const now = new Date();
@@ -84,8 +69,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: {
           userId: session.id,
           fridgeId,
-          productId: it.productId,
+          fridgeItemId: it.productId,
           quantity: it.quantity,
+          itemNameAtTime: product.name,
           priceAtTime: product.price,
           purchaseId: created.id,
         },

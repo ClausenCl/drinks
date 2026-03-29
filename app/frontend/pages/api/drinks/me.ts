@@ -22,11 +22,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       id: true,
       createdAt: true,
       quantity: true,
+      itemNameAtTime: true,
       priceAtTime: true,
       deleted: true,
       billedInId: true,
       fridge: { select: { name: true } },
-      product: { select: { name: true } },
     },
   });
 
@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       id: e.id,
       createdAt: e.createdAt.toISOString(),
       fridgeName: e.fridge.name,
-      productName: e.product.name,
+      productName: e.itemNameAtTime,
       quantity: e.quantity,
       priceAtTime: e.priceAtTime.toFixed(2),
       deleted: e.deleted,

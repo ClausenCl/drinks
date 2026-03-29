@@ -16,23 +16,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const quantity = Number.isInteger(req.body?.quantity) ? (req.body.quantity as number) : 1;
   if (!fridgeId || !productId || quantity < 1) return badRequest(res, "Invalid payload");
 
-  const [fridge, product, fp] = await Promise.all([
+  const [fridge, fridgeItem] = await Promise.all([
     prisma.fridge.findUnique({ where: { id: fridgeId } }),
-    prisma.product.findUnique({ where: { id: productId } }),
-    prisma.fridgeProduct.findFirst({ where: { fridgeId, productId } }),
+    prisma.fridgeItem.findFirst({ where: { id: productId, fridgeId, active: true } }),
   ]);
 
   if (!fridge || !fridge.active) return badRequest(res, "Unknown fridge");
-  if (!product || !product.active) return badRequest(res, "Unknown product");
-  if (!fp) return badRequest(res, "Product not available in this fridge");
+  if (!fridgeItem) return badRequest(res, "Item not available in this fridge");
 
   const entry = await prisma.drinkEntry.create({
     data: {
       userId: session.id,
       fridgeId,
-      productId,
+      fridgeItemId: productId,
       quantity,
-      priceAtTime: product.price,
+      itemNameAtTime: fridgeItem.name,
+      priceAtTime: fridgeItem.price,
     },
     select: { id: true, createdAt: true },
   });
@@ -40,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await writeLog({
     type: LogType.DRINK_ADDED,
     userId: session.id,
-    metadata: { drinkEntryId: entry.id, fridgeId, productId, quantity },
+    metadata: { drinkEntryId: entry.id, fridgeId, fridgeItemId: productId, quantity },
   });
 
   return json(res, 200, { id: entry.id, createdAt: entry.createdAt.toISOString() });

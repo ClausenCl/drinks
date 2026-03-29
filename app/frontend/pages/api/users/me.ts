@@ -26,6 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     name: user.name,
     role: user.role,
     houseId: user.houseId,
+    pinVerified: session.pinVerified,
     requirePinOnPurchase: user.requirePinOnPurchase,
     houseName: user.house.name,
     houseColor: user.house.color,

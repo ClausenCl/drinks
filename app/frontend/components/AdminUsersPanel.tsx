@@ -232,7 +232,7 @@ export function AdminUsersPanel() {
                   <div className="min-w-0">
                     <div className="truncate font-semibold">{user.name}</div>
                     <div className="truncate text-xs text-neutral-600">
-                      {user.house.name} · {user.active ? "active" : "inactive"} · pin: {user.hasPin ? "yes" : "no"} · purchase PIN:{" "}
+                      {user.house.name} · {user.active ? "active" : "inactive"} · pin: {user.hasPin ? "yes" : "no"} · immediate PIN:{" "}
                       {user.requirePinOnPurchase ? "on" : "off"}
                     </div>
                   </div>
@@ -273,7 +273,7 @@ export function AdminUsersPanel() {
                       }))
                     }
                   />
-                  Ask for PIN on purchase
+                  Ask for PIN immediately after name selection
                 </label>
 
                 <button type="button" className="mt-2 w-full rounded-xl bg-black px-3 py-2 text-sm font-semibold text-white" onClick={() => void saveUser(user.id)}>

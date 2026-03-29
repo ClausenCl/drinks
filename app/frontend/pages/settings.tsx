@@ -24,8 +24,6 @@ export default function SettingsPage() {
   const [pinStatus, setPinStatus] = useState<string | null>(null);
 
   const [requirePinOnPurchase, setRequirePinOnPurchase] = useState(false);
-  const [securityCurrentPin, setSecurityCurrentPin] = useState("");
-  const [securityStatus, setSecurityStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !me) void router.replace("/");
@@ -94,7 +92,7 @@ export default function SettingsPage() {
     const res = await fetch("/api/users/me/pin", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "changePin", currentPin, pin, pinRepeat }),
+      body: JSON.stringify({ action: "updateSecurity", currentPin, pin, pinRepeat, requirePinOnPurchase }),
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
@@ -105,27 +103,6 @@ export default function SettingsPage() {
     setPin("");
     setPinRepeat("");
     setPinStatus("Saved");
-  }
-
-  async function savePurchaseRequirement(e: React.FormEvent) {
-    e.preventDefault();
-    setSecurityStatus(null);
-    const res = await fetch("/api/users/me/pin", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        action: "setPurchaseRequirement",
-        currentPin: securityCurrentPin,
-        requirePinOnPurchase,
-      }),
-    });
-    if (!res.ok) {
-      const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
-      setSecurityStatus(body?.message ?? body?.error ?? "FAILED");
-      return;
-    }
-    setSecurityCurrentPin("");
-    setSecurityStatus("Saved");
   }
 
   return (
@@ -171,8 +148,8 @@ export default function SettingsPage() {
         </form>
 
         <form onSubmit={savePin} className="rounded-2xl border border-neutral-200 bg-white p-4">
-          <div className="text-sm font-semibold">PIN</div>
-          <p className="mt-1 text-xs text-neutral-600">Required for resident login.</p>
+          <div className="text-sm font-semibold">PIN & access timing</div>
+          <p className="mt-1 text-xs text-neutral-600">Change PIN and choose when PIN is asked (right after name selection or only when opening menu area).</p>
           <div className="mt-3 space-y-2">
             <label className="block">
               <div className="mb-1 text-xs font-medium text-neutral-600">Current PIN</div>
@@ -185,9 +162,17 @@ export default function SettingsPage() {
               />
             </label>
           </div>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={requirePinOnPurchase}
+              onChange={(e) => setRequirePinOnPurchase(e.target.checked)}
+            />
+            Ask PIN immediately after selecting name
+          </label>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <label className="block">
-              <div className="mb-1 text-xs font-medium text-neutral-600">New 4-digit PIN</div>
+              <div className="mb-1 text-xs font-medium text-neutral-600">New 4-digit PIN (optional)</div>
               <input
                 className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-base tabular-nums"
                 value={pin}
@@ -209,34 +194,7 @@ export default function SettingsPage() {
           </div>
           {pinStatus ? <div className="mt-3 text-sm text-neutral-700">{pinStatus}</div> : null}
           <button type="submit" className="mt-3 w-full rounded-xl bg-black px-4 py-3 text-base font-semibold text-white">
-            Save PIN
-          </button>
-        </form>
-
-        <form onSubmit={savePurchaseRequirement} className="rounded-2xl border border-neutral-200 bg-white p-4">
-          <div className="text-sm font-semibold">Purchase security</div>
-          <p className="mt-1 text-xs text-neutral-600">Choose whether purchases also require PIN confirmation.</p>
-          <label className="mt-3 flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={requirePinOnPurchase}
-              onChange={(e) => setRequirePinOnPurchase(e.target.checked)}
-            />
-            Ask for PIN when buying drinks
-          </label>
-          <label className="mt-3 block">
-            <div className="mb-1 text-xs font-medium text-neutral-600">Current PIN</div>
-            <input
-              className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-base tabular-nums"
-              value={securityCurrentPin}
-              onChange={(e) => setSecurityCurrentPin(e.target.value)}
-              placeholder="1234"
-              inputMode="numeric"
-            />
-          </label>
-          {securityStatus ? <div className="mt-3 text-sm text-neutral-700">{securityStatus}</div> : null}
-          <button type="submit" className="mt-3 w-full rounded-xl bg-black px-4 py-3 text-base font-semibold text-white">
-            Save purchase security
+            Save security settings
           </button>
         </form>
       </div>

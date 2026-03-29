@@ -27,12 +27,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const currentPinOk = await verifyPin(currentPin, user.pinHash);
   if (!currentPinOk) return badRequest(res, "CURRENT_PIN_INVALID");
 
-  if (action === "setPurchaseRequirement") {
+  if (action === "setPurchaseRequirement" || action === "updateSecurity") {
     const requirePinOnPurchase = typeof req.body?.requirePinOnPurchase === "boolean" ? req.body.requirePinOnPurchase : null;
     if (requirePinOnPurchase === null) return badRequest(res, "Missing requirePinOnPurchase");
+
+    const updateData: { requirePinOnPurchase: boolean; pinHash?: string } = { requirePinOnPurchase };
+    if (action === "updateSecurity" && (pin || pinRepeat)) {
+      if (!/^\d{4}$/.test(pin)) return badRequest(res, "PIN_INVALID");
+      if (pin !== pinRepeat) return badRequest(res, "PIN_MISMATCH");
+      updateData.pinHash = await hashPin(pin);
+    }
+
     const updated = await prisma.user.update({
       where: { id: session.id },
-      data: { requirePinOnPurchase },
+      data: updateData,
       select: { id: true, name: true, houseId: true, requirePinOnPurchase: true },
     });
     return json(res, 200, updated);

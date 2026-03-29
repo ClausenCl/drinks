@@ -24,8 +24,9 @@ Usernames are treated case-insensitively on login (so `Admin` works too).
 
 - Residents:
   - Open `/` and pick a house (A–E).
-  - Pick your name and enter your PIN.
-  - New member creation requires a 4-digit PIN and supports an optional “ask PIN on purchase” mode.
+  - Pick your name; depending on your setting, PIN is requested either immediately or when opening the resident menu area.
+  - Purchases themselves do not ask for PIN.
+  - New member creation requires a 4-digit PIN and supports an optional “ask PIN immediately after name selection” mode.
 - Admin / Getränkeminister:
   - Open `/` → click the small “Admin / Getränkeminister login” link (or go to `/admin-login`).
   - Sign in with `loginName` + password (admins/ministers are not drink-consumer accounts).

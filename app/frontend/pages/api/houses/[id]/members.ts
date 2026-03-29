@@ -16,9 +16,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const members = await prisma.user.findMany({
       where: { houseId, role: UserRole.BEWOHNER, active: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true },
+      select: { id: true, name: true, requirePinOnPurchase: true },
     });
-    return json(res, 200, members.map((m) => ({ id: m.id, name: m.name })));
+    return json(
+      res,
+      200,
+      members.map((m) => ({ id: m.id, name: m.name, requirePinOnPurchase: m.requirePinOnPurchase }))
+    );
   }
 
   if (req.method === "POST") {

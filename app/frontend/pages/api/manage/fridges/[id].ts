@@ -31,28 +31,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       name: true,
       locationDescription: true,
       active: true,
-      fridgeProducts: { select: { productId: true } },
+      fridgeItems: {
+        orderBy: [{ active: "desc" }, { name: "asc" }],
+        select: { id: true, name: true, price: true, active: true, createdAt: true },
+      },
     },
   });
   if (!fridge) return notFound(res);
-
-  const inFridge = new Set(fridge.fridgeProducts.map((fp) => fp.productId));
-  const products = await prisma.product.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, price: true, active: true },
-  });
 
   return json(res, 200, {
     id: fridge.id,
     name: fridge.name,
     locationDescription: fridge.locationDescription,
     active: fridge.active,
-    products: products.map((p) => ({
-      id: p.id,
-      name: p.name,
-      active: p.active,
-      price: p.price.toFixed(2),
-      inFridge: inFridge.has(p.id),
+    items: fridge.fridgeItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      active: item.active,
+      price: item.price.toFixed(2),
+      createdAt: item.createdAt.toISOString(),
     })),
   });
 }

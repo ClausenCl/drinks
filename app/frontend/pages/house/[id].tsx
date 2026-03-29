@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 
-type Member = { id: string; name: string };
+type Member = { id: string; name: string; requirePinOnPurchase: boolean };
 type House = { id: string; name: string };
 
 function normalizeName(input: string) {
@@ -29,6 +29,7 @@ export default function HouseMembersPage() {
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
   const [pinLoading, setPinLoading] = useState(false);
+  const [pickError, setPickError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!houseId) return;
@@ -71,9 +72,21 @@ export default function HouseMembersPage() {
   }
 
   async function onPick(member: Member) {
-    setPinFor(member);
-    setPin("");
-    setPinError(null);
+    setPickError(null);
+    if (member.requirePinOnPurchase) {
+      setPinFor(member);
+      setPin("");
+      setPinError(null);
+      return;
+    }
+
+    const error = await login(member, "");
+    if (!error) return;
+    if (error === "PIN_REQUIRED_SETUP") {
+      setPickError("PIN setup required. Ask an admin/minister.");
+      return;
+    }
+    setPickError("Login failed. Try again.");
   }
 
   async function onSubmitPin(e: React.FormEvent) {
@@ -169,6 +182,7 @@ export default function HouseMembersPage() {
                 No matching members.
               </div>
             ) : null}
+            {pickError ? <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{pickError}</div> : null}
           </div>
         </div>
 
@@ -218,7 +232,7 @@ export default function HouseMembersPage() {
                   checked={newRequirePinOnPurchase}
                   onChange={(e) => setNewRequirePinOnPurchase(e.target.checked)}
                 />
-                Ask for code when purchasing drinks
+                Ask for PIN right after selecting the name
               </label>
 
               {createError ? <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{createError}</div> : null}

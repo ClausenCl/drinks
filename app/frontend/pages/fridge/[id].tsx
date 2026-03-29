@@ -18,7 +18,6 @@ export default function FridgePage() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [status, setStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [purchasePinCache, setPurchasePinCache] = useState("");
 
   const [undoToken, setUndoToken] = useState<string | null>(null);
   const [undoExpiresAt, setUndoExpiresAt] = useState<number | null>(null);
@@ -84,28 +83,12 @@ export default function FridgePage() {
     setSubmitting(true);
     setStatus(null);
     try {
-      let purchasePin = "";
-      if (me?.requirePinOnPurchase) {
-        purchasePin = purchasePinCache;
-        if (!/^\d{4}$/.test(purchasePin)) {
-          const entered = window.prompt("Enter your PIN to confirm purchase", "") ?? "";
-          if (!/^\d{4}$/.test(entered)) {
-            setStatus("Valid PIN required.");
-            setSubmitting(false);
-            return;
-          }
-          purchasePin = entered;
-          setPurchasePinCache(entered);
-        }
-      }
-
       const res = await fetch("/api/purchases", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fridgeId, items, pin: purchasePin }),
+        body: JSON.stringify({ fridgeId, items }),
       });
       if (!res.ok) {
-        setPurchasePinCache("");
         setStatus("Failed to save purchase.");
         return;
       }

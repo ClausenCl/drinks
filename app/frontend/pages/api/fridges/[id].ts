@@ -16,20 +16,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     select: {
       id: true,
       name: true,
-      fridgeProducts: {
-        select: {
-          product: { select: { id: true, name: true, price: true, active: true } },
-        },
-      },
+      fridgeItems: { where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, price: true } },
     },
   });
 
   if (!fridge) return notFound(res);
 
-  const products = fridge.fridgeProducts
-    .map((fp) => fp.product)
-    .filter((p) => p.active)
-    .map((p) => ({ id: p.id, name: p.name, price: p.price.toFixed(2) }));
+  const products = fridge.fridgeItems.map((item) => ({ id: item.id, name: item.name, price: item.price.toFixed(2) }));
 
   return json(res, 200, { id: fridge.id, name: fridge.name, products });
 }

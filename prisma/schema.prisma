@@ -93,19 +93,6 @@ model MinisterFridgePermission {
   @@map("minister_fridge_permissions")
 }
 
-model Product {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique
-  price     Decimal  @db.Decimal(10, 2)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  fridgeProducts FridgeProduct[]
-  drinkEntries   DrinkEntry[]
-
-  @@map("products")
-}
-
 model Fridge {
   id                  String   @id @default(uuid()) @db.Uuid
   name                String
@@ -113,7 +100,7 @@ model Fridge {
   createdAt           DateTime @default(now()) @map("created_at")
   active              Boolean  @default(true)
 
-  fridgeProducts FridgeProduct[]
+  fridgeItems    FridgeItem[]
   drinkEntries   DrinkEntry[]
   purchases      Purchase[]
   ministerPermissions MinisterFridgePermission[]
@@ -121,38 +108,44 @@ model Fridge {
   @@map("fridges")
 }
 
-model FridgeProduct {
+model FridgeItem {
   id        String @id @default(uuid()) @db.Uuid
   fridgeId  String @db.Uuid @map("fridge_id")
-  productId String @db.Uuid @map("product_id")
+  name      String
+  price     Decimal  @db.Decimal(10, 2)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
 
-  fridge  Fridge  @relation(fields: [fridgeId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  fridge      Fridge       @relation(fields: [fridgeId], references: [id], onDelete: Cascade)
+  drinkEntries DrinkEntry[]
 
-  @@unique([fridgeId, productId])
-  @@map("fridge_products")
+  @@index([fridgeId, active])
+  @@unique([fridgeId, name])
+  @@map("fridge_items")
 }
 
 model DrinkEntry {
   id          String   @id @default(uuid()) @db.Uuid
   userId      String   @db.Uuid @map("user_id")
-  productId   String   @db.Uuid @map("product_id")
+  fridgeItemId String  @db.Uuid @map("fridge_item_id")
   fridgeId    String   @db.Uuid @map("fridge_id")
   purchaseId  String?  @db.Uuid @map("purchase_id")
   quantity    Int      @default(1)
+  itemNameAtTime String @map("item_name_at_time")
   priceAtTime Decimal  @db.Decimal(10, 2) @map("price_at_time")
   createdAt   DateTime @default(now()) @map("created_at")
   deleted     Boolean  @default(false)
   billedInId  String?  @db.Uuid @map("billed_in_id")
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
-  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
-  fridge  Fridge  @relation(fields: [fridgeId], references: [id], onDelete: Restrict)
-  purchase Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
-  billedIn BillingRun? @relation(fields: [billedInId], references: [id], onDelete: SetNull)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  fridgeItem FridgeItem  @relation(fields: [fridgeItemId], references: [id], onDelete: Restrict)
+  fridge     Fridge      @relation(fields: [fridgeId], references: [id], onDelete: Restrict)
+  purchase   Purchase?   @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  billedIn   BillingRun? @relation(fields: [billedInId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([fridgeId, createdAt])
+  @@index([fridgeItemId])
   @@index([purchaseId])
   @@index([billedInId])
   @@map("drink_entries")

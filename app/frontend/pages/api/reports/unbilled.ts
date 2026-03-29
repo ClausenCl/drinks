@@ -38,18 +38,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     SELECT
       f.id AS "fridgeId",
       f.name AS "fridgeName",
-      p.id AS "productId",
-      p.name AS "productName",
+      de.fridge_item_id AS "productId",
+      de.item_name_at_time AS "productName",
       SUM(de.quantity)::int AS "quantity",
       SUM((de.quantity * de.price_at_time))::text AS "total"
     FROM drink_entries de
     JOIN fridges f ON f.id = de.fridge_id
-    JOIN products p ON p.id = de.product_id
     WHERE de.deleted = false
       AND de.billed_in_id IS NULL
       ${fridgeFilter}
-    GROUP BY f.id, f.name, p.id, p.name
-    ORDER BY f.name ASC, p.name ASC
+    GROUP BY f.id, f.name, de.fridge_item_id, de.item_name_at_time
+    ORDER BY f.name ASC, de.item_name_at_time ASC
   `;
 
   return json(res, 200, rows);

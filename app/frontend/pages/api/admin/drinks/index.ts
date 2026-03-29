@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? {
           OR: [
             { user: { name: { contains: q, mode: "insensitive" as const } } },
-            { product: { name: { contains: q, mode: "insensitive" as const } } },
+            { itemNameAtTime: { contains: q, mode: "insensitive" as const } },
             { fridge: { name: { contains: q, mode: "insensitive" as const } } },
           ],
         }
@@ -48,9 +48,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       priceAtTime: true,
       deleted: true,
       billedInId: true,
+      fridgeItemId: true,
+      itemNameAtTime: true,
       user: { select: { id: true, name: true, house: { select: { id: true, name: true } } } },
       fridge: { select: { id: true, name: true } },
-      product: { select: { id: true, name: true } },
     },
   });
 
@@ -66,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       billed: Boolean(entry.billedInId),
       user: entry.user,
       fridge: entry.fridge,
-      product: entry.product,
+      product: { id: entry.fridgeItemId, name: entry.itemNameAtTime },
     }))
   );
 }
