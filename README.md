@@ -34,3 +34,4 @@ Usernames are treated case-insensitively on login (so `Admin` works too).
 ## Notes
 - Prisma schema lives at `prisma/schema.prisma`.
 - API routes are in `app/frontend/pages/api/*` and call shared code in `backend/*`.
+- Known limitation (as of 2026-03-30): because the fridge flow is entered via the resident menu area, users with deferred PIN unlock still need to enter PIN before they can log drinks.
