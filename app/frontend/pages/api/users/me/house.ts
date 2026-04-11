@@ -2,12 +2,13 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
-import { getSessionUser } from "@backend/services/session";
+import { enforceSameOrigin, requireResidentSession } from "@backend/lib/security";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PATCH") return methodNotAllowed(res);
-  const session = getSessionUser(req);
-  if (!session) return unauthorized(res);
+  if (!enforceSameOrigin(req, res)) return;
+  const session = requireResidentSession(req, res, { requirePinVerified: true });
+  if (!session) return;
 
   const houseId = typeof req.body?.houseId === "string" ? req.body.houseId : "";
   if (!houseId) return badRequest(res, "Missing houseId");

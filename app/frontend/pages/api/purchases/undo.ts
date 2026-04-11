@@ -2,11 +2,13 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { LogType, UserRole } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
+import { enforceSameOrigin } from "@backend/lib/security";
 import { getSessionUser } from "@backend/services/session";
 import { writeLog } from "@backend/services/logs";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return methodNotAllowed(res);
+  if (!enforceSameOrigin(req, res)) return;
   const session = getSessionUser(req);
   if (!session) return unauthorized(res);
   if (session.role !== UserRole.BEWOHNER) return unauthorized(res);
@@ -41,4 +43,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return json(res, 200, { ok: true, undoneCount: updated });
 }
-

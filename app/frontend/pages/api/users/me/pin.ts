@@ -1,15 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { UserRole } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
-import { getSessionUser } from "@backend/services/session";
+import { enforceRateLimit, enforceSameOrigin, requireResidentSession } from "@backend/lib/security";
 import { hashPin, verifyPin } from "@backend/services/pin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PATCH") return methodNotAllowed(res);
-  const session = getSessionUser(req);
-  if (!session) return unauthorized(res);
-  if (session.role !== UserRole.BEWOHNER) return unauthorized(res);
+  if (!enforceSameOrigin(req, res)) return;
+  if (!enforceRateLimit(req, res, { bucket: "resident-pin-settings", limit: 15, windowMs: 10 * 60 * 1000 })) return;
+  const session = requireResidentSession(req, res, { requirePinVerified: true });
+  if (!session) return;
 
   const currentPin = typeof req.body?.currentPin === "string" ? req.body.currentPin : "";
   const action = typeof req.body?.action === "string" ? req.body.action : "changePin";

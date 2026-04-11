@@ -32,7 +32,7 @@ export default function MenuPage() {
   return (
     <AppShell title="Menu">
       <div className="space-y-4">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
           <div className="text-sm text-neutral-600">Logged in as</div>
           <div className="mt-1 text-base font-semibold">{me ? me.name : "..."}</div>
         </div>
@@ -40,7 +40,7 @@ export default function MenuPage() {
         <FridgeSelector fridges={fridges} value={selected} onChange={(id) => setSelected(id)} />
 
         {selected ? (
-          <Link className="block w-full rounded-xl bg-black px-4 py-3 text-center text-base font-semibold text-white" href={`/fridge/${selected}`}>
+          <Link className="block w-full rounded-xl bg-black px-4 py-3 text-center text-base font-semibold text-white shadow-sm" href={`/fridge/${selected}`}>
             Open fridge
           </Link>
         ) : (

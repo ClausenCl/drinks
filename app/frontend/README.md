@@ -26,6 +26,8 @@ npm run db:seed
 - `npm run build` - production build
 - `npm run start` - run built app
 - `npm run lint` - lint TypeScript/React
+- `npm run backup:run` - create one DB backup dump (and email it if SMTP is configured)
+- `npm run backup:loop` - run continuous backup loop (used by production backup service)
 
 ## Structure
 

@@ -1,6 +1,13 @@
 Drinks Tracker - Operations and Architecture (as of 2026-03-12)
 ================================================================
 
+Update notes (2026-04-11)
+-------------------------
+- Production compose now supports a reverse proxy (`proxy`) so users can access via `http://drinks.local` (no `:3000`).
+- Production compose now includes `backup` service for automated DB dumps and optional SMTP email delivery.
+- Resident PIN behavior: buying flow is available without PIN in deferred mode; protected pages (history/bills/settings) still require PIN unlock.
+- Admin/minister resident lists no longer expose whether a resident has a PIN set.
+
 This document answers:
 1) How to stop "hosting" (dev/prod) safely.
 2) How to start the server step-by-step (local dev).

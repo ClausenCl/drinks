@@ -28,14 +28,14 @@ export default function IndexPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white px-4 py-10 text-neutral-900">
+    <div className="min-h-screen bg-gradient-to-b from-white to-neutral-100 px-4 py-10 text-neutral-900">
       <div className="mx-auto max-w-md space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Drinks</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Drinks</h1>
           <p className="mt-1 text-sm text-neutral-600">Choose your house to continue.</p>
         </div>
 
-        <section className="rounded-2xl border border-neutral-200 bg-white p-4">
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
           <div className="text-sm font-semibold">Resident</div>
           <p className="mt-1 text-xs text-neutral-600">Pick your house, then your name.</p>
           <div className="mt-3 space-y-2">
@@ -49,7 +49,7 @@ export default function IndexPage() {
                 key={h.id}
                 type="button"
                 onClick={() => void router.push({ pathname: `/house/${h.id}`, query: next ? { next } : {} })}
-                className="w-full rounded-xl px-4 py-4 text-left text-base font-semibold text-white"
+                className="w-full rounded-xl px-4 py-4 text-left text-base font-semibold text-white shadow-sm transition hover:brightness-95"
                 style={{ backgroundColor: h.color || "#111827" }}
               >
                 {h.name}

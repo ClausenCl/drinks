@@ -1,16 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { UserRole } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
-import { json, methodNotAllowed, notFound, unauthorized } from "@backend/lib/http";
+import { json, methodNotAllowed, notFound } from "@backend/lib/http";
 import { centsToDecimal, decimalToCents } from "@backend/lib/money";
-import { getSessionUser } from "@backend/services/session";
+import { requireResidentSession } from "@backend/lib/security";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res);
 
-  const session = getSessionUser(req);
-  if (!session) return unauthorized(res);
-  if (session.role !== UserRole.BEWOHNER) return unauthorized(res);
+  const session = requireResidentSession(req, res, { requirePinVerified: true });
+  if (!session) return;
 
   const runId = typeof req.query.id === "string" ? req.query.id : "";
   if (!runId) return notFound(res);

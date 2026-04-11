@@ -126,7 +126,7 @@ export default function FridgePage() {
       {status ? <div className="mb-3 rounded-xl bg-neutral-900 px-3 py-2 text-sm text-white">{status}</div> : null}
       <div className="space-y-3">
         {(data?.products ?? []).map((p) => (
-          <div key={p.id} className="rounded-2xl border border-neutral-200 bg-white p-3">
+          <div key={p.id} className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
             <div className="flex items-baseline justify-between gap-3">
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{p.name}</div>
@@ -160,7 +160,7 @@ export default function FridgePage() {
           type="button"
           disabled={submitting || !data}
           onClick={() => void submit()}
-          className="w-full rounded-xl bg-black px-4 py-4 text-base font-semibold text-white disabled:opacity-50"
+          className="w-full rounded-xl bg-black px-4 py-4 text-base font-semibold text-white shadow-sm disabled:opacity-50"
         >
           {submitting ? "Saving…" : "Enter"}
         </button>

@@ -9,7 +9,6 @@ type UserRow = {
   houseId: string;
   house: House;
   active: boolean;
-  hasPin: boolean;
   requirePinOnPurchase: boolean;
   createdAt: string;
   updatedAt: string;
@@ -183,7 +182,7 @@ export function AdminUsersPanel() {
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-4">
       <div className="text-sm font-semibold">{isAdmin ? "Residents (admin)" : "Residents (minister)"}</div>
-      <p className="mt-1 text-xs text-neutral-600">Manage resident names, active status, and PINs.</p>
+      <p className="mt-1 text-xs text-neutral-600">Manage resident names, active status, and PIN reset settings.</p>
 
       <div className="mt-3 space-y-2">
         <input
@@ -232,8 +231,7 @@ export function AdminUsersPanel() {
                   <div className="min-w-0">
                     <div className="truncate font-semibold">{user.name}</div>
                     <div className="truncate text-xs text-neutral-600">
-                      {user.house.name} · {user.active ? "active" : "inactive"} · pin: {user.hasPin ? "yes" : "no"} · immediate PIN:{" "}
-                      {user.requirePinOnPurchase ? "on" : "off"}
+                      {user.house.name} · {user.active ? "active" : "inactive"} · immediate PIN: {user.requirePinOnPurchase ? "on" : "off"}
                     </div>
                   </div>
                   <button type="button" className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-semibold" onClick={() => void toggleActive(user)}>

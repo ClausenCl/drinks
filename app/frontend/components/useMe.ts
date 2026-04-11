@@ -17,7 +17,7 @@ export function useMe() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    async function loadMe() {
       try {
         const res = await fetch("/api/users/me");
         if (!res.ok) {
@@ -29,9 +29,17 @@ export function useMe() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
+    }
+    void loadMe();
+
+    function onSessionChanged() {
+      setLoading(true);
+      void loadMe();
+    }
+    window.addEventListener("drinks:session-changed", onSessionChanged);
     return () => {
       cancelled = true;
+      window.removeEventListener("drinks:session-changed", onSessionChanged);
     };
   }, []);
 

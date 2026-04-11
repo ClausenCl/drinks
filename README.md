@@ -24,14 +24,26 @@ Usernames are treated case-insensitively on login (so `Admin` works too).
 
 - Residents:
   - Open `/` and pick a house (A–E).
-  - Pick your name; depending on your setting, PIN is requested either immediately or when opening the resident menu area.
-  - Purchases themselves do not ask for PIN.
+  - Pick your name; depending on your setting, PIN is requested either immediately or deferred.
+  - Buying drinks (`/menu` and `/fridge/[id]`) does not require PIN in deferred mode.
+  - PIN is required for protected resident pages such as History, Bills and Settings.
   - New member creation requires a 4-digit PIN and supports an optional “ask PIN immediately after name selection” mode.
 - Admin / Getränkeminister:
   - Open `/` → click the small “Admin / Getränkeminister login” link (or go to `/admin-login`).
   - Sign in with `loginName` + password (admins/ministers are not drink-consumer accounts).
+  - Fridge management now includes downloadable fridge QR codes (`PNG`) that deep-link to the fridge page.
+
+## Production deployment notes
+
+- Production compose (`docker/docker-compose.prod.yml`) now runs:
+  - `web` (Next.js app),
+  - `db` (Postgres),
+  - `proxy` (Caddy on port `80`, removes `:3000` from the user URL),
+  - `backup` (daily backup loop with optional SMTP email delivery).
+- Set `PUBLIC_BASE_URL` (for QR links), e.g. `http://drinks.local`.
+- To use email backups, set: `BACKUP_EMAIL_TO`, `BACKUP_EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`.
+- Backup defaults: enabled, every 24h (`BACKUP_INTERVAL_SECONDS=86400`), retention 14 days.
 
 ## Notes
 - Prisma schema lives at `prisma/schema.prisma`.
 - API routes are in `app/frontend/pages/api/*` and call shared code in `backend/*`.
-- Known limitation (as of 2026-03-30): because the fridge flow is entered via the resident menu area, users with deferred PIN unlock still need to enter PIN before they can log drinks.

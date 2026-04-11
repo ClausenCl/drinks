@@ -2,11 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
+import { enforceRateLimit, enforceSameOrigin } from "@backend/lib/security";
 import { hashPin } from "@backend/services/pin";
 import { getSessionUser } from "@backend/services/session";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PATCH") return methodNotAllowed(res);
+  if (!enforceSameOrigin(req, res)) return;
+  if (!enforceRateLimit(req, res, { bucket: "admin-pin-reset", limit: 40, windowMs: 10 * 60 * 1000 })) return;
   const session = getSessionUser(req);
   if (!session) return unauthorized(res);
   if (session.role === UserRole.BEWOHNER) return unauthorized(res);

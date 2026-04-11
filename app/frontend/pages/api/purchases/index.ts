@@ -3,6 +3,7 @@ import { LogType, UserRole } from "@prisma/client";
 import crypto from "crypto";
 import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
+import { enforceSameOrigin } from "@backend/lib/security";
 import { getSessionUser } from "@backend/services/session";
 import { writeLog } from "@backend/services/logs";
 
@@ -21,6 +22,7 @@ function parseItem(input: unknown): { productId: string; quantity: unknown } {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return methodNotAllowed(res);
+  if (!enforceSameOrigin(req, res)) return;
   const session = getSessionUser(req);
   if (!session) return unauthorized(res);
   if (session.role !== UserRole.BEWOHNER) return unauthorized(res);

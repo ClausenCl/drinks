@@ -11,7 +11,9 @@
     "db:migrate": "node scripts/ensure-prisma-link.mjs && node scripts/with-env.mjs prisma migrate dev --schema prisma/schema.prisma --name init",
     "db:seed": "node scripts/ensure-prisma-link.mjs && node scripts/with-env.mjs node scripts/run-seed.mjs",
     "db:reset": "node scripts/ensure-prisma-link.mjs && node scripts/with-env.mjs prisma migrate reset --schema prisma/schema.prisma --force",
-    "db:studio": "node scripts/ensure-prisma-link.mjs && node scripts/with-env.mjs prisma studio --schema prisma/schema.prisma"
+    "db:studio": "node scripts/ensure-prisma-link.mjs && node scripts/with-env.mjs prisma studio --schema prisma/schema.prisma",
+    "backup:run": "node scripts/backup-email.mjs",
+    "backup:loop": "node scripts/backup-loop.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
@@ -19,14 +21,17 @@
     "bcryptjs": "^3.0.3",
     "cookie": "^1.1.1",
     "next": "16.1.6",
+    "nodemailer": "^8.0.5",
     "pdfkit": "^0.17.2",
     "prisma": "^6.19.2",
+    "qrcode": "^1.5.4",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

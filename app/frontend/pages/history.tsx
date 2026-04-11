@@ -30,6 +30,7 @@ export default function HistoryPage() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const { me, loading } = useMe();
   const router = useRouter();
+  const canLoadProtectedData = me?.role === "BEWOHNER" && me.pinVerified !== false;
 
   useEffect(() => {
     if (!loading && !me) void router.replace("/");
@@ -37,6 +38,7 @@ export default function HistoryPage() {
   }, [loading, me, router]);
 
   useEffect(() => {
+    if (!canLoadProtectedData) return;
     let cancelled = false;
     (async () => {
       setOverviewLoading(true);
@@ -55,9 +57,10 @@ export default function HistoryPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canLoadProtectedData]);
 
   useEffect(() => {
+    if (!canLoadProtectedData) return;
     if (tab !== "unbilled") return;
     let cancelled = false;
     (async () => {
@@ -82,9 +85,10 @@ export default function HistoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [tab]);
+  }, [canLoadProtectedData, tab]);
 
   useEffect(() => {
+    if (!canLoadProtectedData) return;
     if (tab !== "billed" || !selectedInvoiceId) {
       setInvoiceDetail(null);
       return;
@@ -107,7 +111,7 @@ export default function HistoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedInvoiceId, tab]);
+  }, [canLoadProtectedData, selectedInvoiceId, tab]);
 
   const selectedInvoiceTitle = useMemo(() => invoices.find((i) => i.id === selectedInvoiceId)?.title ?? "", [invoices, selectedInvoiceId]);
 

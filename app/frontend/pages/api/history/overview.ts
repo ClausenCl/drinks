@@ -1,17 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { UserRole } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
-import { json, methodNotAllowed, unauthorized } from "@backend/lib/http";
+import { json, methodNotAllowed } from "@backend/lib/http";
 import { centsToDecimal, decimalToCents } from "@backend/lib/money";
-import { getSessionUser } from "@backend/services/session";
+import { requireResidentSession } from "@backend/lib/security";
 
 type InvoiceSummary = { id: string; title: string; createdAt: string; total: string };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res);
-  const session = getSessionUser(req);
-  if (!session) return unauthorized(res);
-  if (session.role !== UserRole.BEWOHNER) return unauthorized(res);
+  const session = requireResidentSession(req, res, { requirePinVerified: true });
+  if (!session) return;
 
   const [openDrinks, openBillShares, openCharges, billedDrinks, billedBillShares, billedCharges] = await Promise.all([
     prisma.drinkEntry.findMany({

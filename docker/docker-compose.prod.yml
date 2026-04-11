@@ -29,9 +29,8 @@ services:
       # If you run without HTTPS in your home network, secure cookies would prevent logins from persisting.
       # Set to "true" when you put the app behind HTTPS (recommended if you ever expose it beyond LAN).
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://drinks.local}
       BILLING_PDF_DIR: /repo/app/frontend/storage/billing
-    ports:
-      - "3000:3000"
     volumes:
       - billing_pdfs:/repo/app/frontend/storage
     healthcheck:
@@ -40,6 +39,46 @@ services:
       timeout: 3s
       retries: 10
 
+  backup:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/drinks?schema=public
+      BACKUP_ENABLED: ${BACKUP_ENABLED:-true}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_INITIAL_DELAY_SECONDS: ${BACKUP_INITIAL_DELAY_SECONDS:-90}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_DIR: /repo/app/frontend/storage/backups
+      BACKUP_EMAIL_TO: ${BACKUP_EMAIL_TO:-}
+      BACKUP_EMAIL_FROM: ${BACKUP_EMAIL_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+    command: ["node", "scripts/backup-loop.mjs"]
+    volumes:
+      - billing_pdfs:/repo/app/frontend/storage
+
+  proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
 volumes:
   db_data:
   billing_pdfs:
+  caddy_data:
+  caddy_config:

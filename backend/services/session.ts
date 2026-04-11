@@ -14,6 +14,8 @@ type SessionPayload = {
   exp: number;
 };
 
+export type SessionUser = Pick<SessionPayload, "id" | "name" | "role" | "houseId" | "pinVerified">;
+
 function shouldUseSecureCookie() {
   const raw = process.env.SESSION_COOKIE_SECURE;
   if (raw === "true" || raw === "1") return true;
@@ -80,5 +82,5 @@ export function getSessionUser(req: NextApiRequest) {
 
   if (typeof payload.exp !== "number" || payload.exp < Math.floor(Date.now() / 1000)) return null;
   if (!payload.id || !payload.houseId || !payload.name) return null;
-  return { id: payload.id, name: payload.name, role: payload.role, houseId: payload.houseId, pinVerified: payload.pinVerified ?? true };
+  return { id: payload.id, name: payload.name, role: payload.role, houseId: payload.houseId, pinVerified: payload.pinVerified ?? true } satisfies SessionUser;
 }

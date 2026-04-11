@@ -1,11 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
+import { enforceRateLimit, enforceSameOrigin } from "@backend/lib/security";
 import { verifyPassword } from "@backend/services/password";
 import { createSessionCookie } from "@backend/services/session";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return methodNotAllowed(res);
+  if (!enforceSameOrigin(req, res)) return;
+  if (!enforceRateLimit(req, res, { bucket: "auth-login-legacy", limit: 10, windowMs: 10 * 60 * 1000 })) return;
   const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
   if (!name || !password) return badRequest(res, "Missing name or password");

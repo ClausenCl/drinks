@@ -2,11 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
 import { badRequest, json, methodNotAllowed, unauthorized } from "@backend/lib/http";
+import { enforceRateLimit, enforceSameOrigin } from "@backend/lib/security";
 import { verifyPin } from "@backend/services/pin";
 import { createSessionCookie } from "@backend/services/session";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return methodNotAllowed(res);
+  if (!enforceSameOrigin(req, res)) return;
+  if (!enforceRateLimit(req, res, { bucket: "auth-resident", limit: 20, windowMs: 10 * 60 * 1000 })) return;
 
   const userId = typeof req.body?.userId === "string" ? req.body.userId : "";
   const pin = typeof req.body?.pin === "string" ? req.body.pin : "";

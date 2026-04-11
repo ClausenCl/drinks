@@ -136,7 +136,7 @@ export default function HouseMembersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white px-4 py-10 text-neutral-900">
+    <div className="min-h-screen bg-gradient-to-b from-white to-neutral-100 px-4 py-10 text-neutral-900">
       <div className="mx-auto max-w-md space-y-5">
         <button type="button" className="text-sm text-neutral-700 underline" onClick={() => void router.push({ pathname: "/", query: next ? { next } : {} })}>
           ← Back
@@ -147,7 +147,7 @@ export default function HouseMembersPage() {
           <p className="mt-1 text-sm text-neutral-600">Select your name. If you’re new, add yourself.</p>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
           <label className="block">
             <div className="mb-1 text-xs font-medium text-neutral-600">Search</div>
             <input
@@ -169,7 +169,7 @@ export default function HouseMembersPage() {
                 key={m.id}
                 type="button"
                 onClick={() => void onPick(m)}
-                className="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-3 py-3 text-left"
+                className="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-3 py-3 text-left shadow-sm"
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold">{m.name}</div>
@@ -186,7 +186,7 @@ export default function HouseMembersPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
           <button type="button" className="text-sm font-semibold underline" onClick={() => setCreating((v) => !v)}>
             {creating ? "Hide" : "New member"}
           </button>
@@ -246,7 +246,7 @@ export default function HouseMembersPage() {
 
         {pinFor ? (
           <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/30 p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-lg">
               <div className="text-sm font-semibold">Enter PIN</div>
               <div className="mt-1 text-xs text-neutral-600">{pinFor.name}</div>
               <form onSubmit={onSubmitPin} className="mt-3 space-y-3">

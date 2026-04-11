@@ -7,6 +7,7 @@ export function AppShell(props: { title: string; children: ReactNode }) {
   const router = useRouter();
   const current = router.pathname;
   const { me } = useMe();
+  const protectedResidentRoutes = new Set(["/history", "/bills", "/settings"]);
   const accent = me?.houseColor && /^#[0-9a-fA-F]{6}$/.test(me.houseColor) ? me.houseColor : "#111827";
   const [menuOpen, setMenuOpen] = useState(false);
   const [unlockPin, setUnlockPin] = useState("");
@@ -14,7 +15,11 @@ export function AppShell(props: { title: string; children: ReactNode }) {
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [residentUnlockedLocally, setResidentUnlockedLocally] = useState(false);
 
-  const needsResidentUnlock = me?.role === "BEWOHNER" && me.pinVerified === false && !residentUnlockedLocally;
+  const needsResidentUnlock =
+    me?.role === "BEWOHNER" &&
+    me.pinVerified === false &&
+    protectedResidentRoutes.has(current) &&
+    !residentUnlockedLocally;
 
   const NavLink = (p: { href: string; label: string }) => (
     <Link
@@ -60,14 +65,15 @@ export function AppShell(props: { title: string; children: ReactNode }) {
       setUnlockPin("");
       setMenuOpen(false);
       setResidentUnlockedLocally(true);
+      window.dispatchEvent(new Event("drinks:session-changed"));
     } finally {
       setUnlocking(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
-      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur">
+    <div className="min-h-screen bg-gradient-to-b from-white to-neutral-100 text-neutral-900">
+      <header className="sticky top-0 z-10 border-b border-neutral-200/80 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 truncate text-base font-semibold">
@@ -82,7 +88,7 @@ export function AppShell(props: { title: string; children: ReactNode }) {
               <div className="relative">
                 <button
                   type="button"
-                  className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900"
+                  className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900 shadow-sm"
                   onClick={() => setMenuOpen((v) => !v)}
                 >
                   Menu
@@ -108,7 +114,7 @@ export function AppShell(props: { title: string; children: ReactNode }) {
             <button
               type="button"
               onClick={() => void logout()}
-              className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900"
+              className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900 shadow-sm"
               title="Log out"
             >
               Logout
@@ -116,11 +122,11 @@ export function AppShell(props: { title: string; children: ReactNode }) {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-md px-4 py-4">
+      <main className="mx-auto max-w-md px-4 py-5">
         {needsResidentUnlock ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-4">
             <div className="text-sm font-semibold">PIN required</div>
-            <p className="mt-1 text-xs text-neutral-600">Enter your PIN once to access Menu, History, Bills and Settings.</p>
+            <p className="mt-1 text-xs text-neutral-600">Enter your PIN once to access History, Bills and Settings.</p>
             <form onSubmit={unlockResidentArea} className="mt-3 space-y-2">
               <input
                 className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-base tabular-nums tracking-widest"

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 type Fridge = { id: string; name: string };
 type FridgeDetails = {
@@ -134,6 +135,29 @@ export function FridgeManager() {
 
         {details ? (
           <div className="space-y-4">
+            <div className="rounded-xl border border-neutral-200 p-3">
+              <div className="text-xs font-medium text-neutral-600">Fridge QR</div>
+              <p className="mt-1 text-xs text-neutral-600">
+                Scan opens this fridge directly. If logged out, resident selection appears first and then returns to this fridge.
+              </p>
+              <div className="mt-3 flex items-center gap-3">
+                <Image
+                  src={`/api/manage/fridges/${details.id}/qr`}
+                  alt={`QR code for ${details.name}`}
+                  width={112}
+                  height={112}
+                  className="h-28 w-28 rounded-lg border border-neutral-200 bg-white p-1"
+                  unoptimized
+                />
+                <a
+                  href={`/api/manage/fridges/${details.id}/qr?download=1`}
+                  className="rounded-xl bg-black px-3 py-2 text-sm font-semibold text-white"
+                >
+                  Download PNG
+                </a>
+              </div>
+            </div>
+
             <form onSubmit={createItem} className="rounded-xl border border-neutral-200 p-3">
               <div className="text-xs font-medium text-neutral-600">Add new item</div>
               <div className="mt-2 grid grid-cols-2 gap-2">
