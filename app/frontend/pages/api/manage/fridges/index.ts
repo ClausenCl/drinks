@@ -15,15 +15,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!session) return unauthorized(res);
   if (session.role === UserRole.BEWOHNER) return unauthorized(res);
 
-  let where: any = { active: true };
   if (session.role === UserRole.GETRAENKEMINISTER) {
     const allowed = await getAllowedFridges(session.id);
     if (allowed.length === 0) return json(res, 200, []);
-    where = { ...where, id: { in: allowed } };
+    const fridges = await prisma.fridge.findMany({
+      where: { active: true, id: { in: allowed } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    });
+    return json(res, 200, fridges);
   }
 
   const fridges = await prisma.fridge.findMany({
-    where,
+    where: { active: true },
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });

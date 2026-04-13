@@ -1,11 +1,11 @@
 # Improvement Backlog (Critical Check)
 
-Last updated: 2026-04-11
+Last updated: 2026-04-13
 
 ## High Priority
 
 1. **Decouple buy flow from menu navigation entirely**
-   - **Impact:** removes remaining confusion around optional PIN vs protected pages.
+   - **Impact:** removes the remaining edge case where deferred-PIN residents may still hit PIN flow before pure buy-only access in specific menu transitions.
    - **Effort:** medium.
    - **Next step:** add a dedicated lightweight buy landing route that goes straight to fridge selection.
 

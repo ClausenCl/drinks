@@ -35,3 +35,13 @@ npm run db:seed
 - `pages/api/` - API handlers
 - `components/` - shared UI components
 - `scripts/` - prisma/env helper scripts
+
+## Ops routes
+
+- `admin.tsx`, `manager.tsx` are operation landing pages.
+- Domain pages:
+  - `/admin/residents`, `/admin/fridges`, `/admin/finance`, `/admin/system`
+  - `/manager/residents`, `/manager/fridges`, `/manager/finance`, `/manager/system`
+- Resident detail workspace:
+  - `/admin/residents/[id]`
+  - `/manager/residents/[id]`

@@ -9,6 +9,8 @@ export function AppShell(props: { title: string; children: ReactNode }) {
   const { me } = useMe();
   const protectedResidentRoutes = new Set(["/history", "/bills", "/settings"]);
   const accent = me?.houseColor && /^#[0-9a-fA-F]{6}$/.test(me.houseColor) ? me.houseColor : "#111827";
+  const isResident = me?.role === "BEWOHNER";
+  const isAdminOrManager = me?.role === "ADMIN" || me?.role === "GETRAENKEMINISTER";
   const [menuOpen, setMenuOpen] = useState(false);
   const [unlockPin, setUnlockPin] = useState("");
   const [unlocking, setUnlocking] = useState(false);
@@ -21,18 +23,21 @@ export function AppShell(props: { title: string; children: ReactNode }) {
     protectedResidentRoutes.has(current) &&
     !residentUnlockedLocally;
 
-  const NavLink = (p: { href: string; label: string }) => (
+  const NavLink = (p: { href: string; label: string }) => {
+    const active = current === p.href || current.startsWith(`${p.href}/`);
+    return (
     <Link
       href={p.href}
       className={[
-        "rounded-full px-3 py-2 text-sm font-medium",
-        current === p.href ? "text-white" : "bg-neutral-100 text-neutral-900",
+        "rounded-full border px-3 py-2 text-sm font-semibold transition active:scale-[0.98]",
+        active ? "border-neutral-900 bg-neutral-900 text-white shadow-md" : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-100",
       ].join(" ")}
-      style={current === p.href ? { backgroundColor: accent } : undefined}
+      style={active && isResident ? { backgroundColor: accent, borderColor: accent } : undefined}
     >
       {p.label}
     </Link>
-  );
+    );
+  };
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
@@ -72,14 +77,26 @@ export function AppShell(props: { title: string; children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-neutral-100 text-neutral-900">
-      <header className="sticky top-0 z-10 border-b border-neutral-200/80 bg-white/90 backdrop-blur">
+    <div
+      className="min-h-screen text-neutral-900"
+      style={{
+        background: isResident
+          ? `linear-gradient(180deg, ${accent} 0%, ${accent} 35%, #f5f5f5 100%)`
+          : "linear-gradient(180deg, #0f172a 0%, #1f2937 16%, #f5f5f5 52%)",
+      }}
+    >
+      <header className={["sticky top-0 z-10 border-b backdrop-blur", isAdminOrManager ? "border-white/20 bg-slate-900/80" : "border-white/30 bg-white/88"].join(" ")}>
         <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 truncate text-base font-semibold">
+            <div className={["flex items-center gap-2 truncate text-base font-bold", isAdminOrManager ? "text-white" : "text-neutral-900"].join(" ")}>
               {me?.houseColor ? <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: accent }} /> : null}
               <span className="truncate">{props.title}</span>
             </div>
+            {me ? (
+              <div className={["mt-0.5 truncate text-xs", isAdminOrManager ? "text-slate-200" : "text-neutral-700"].join(" ")}>
+                Logged in as {me.name}
+              </div>
+            ) : null}
           </div>
           <nav className="flex shrink-0 items-center gap-2">
             {me?.role === "ADMIN" ? <NavLink href="/admin" label="Admin" /> : null}
@@ -88,7 +105,10 @@ export function AppShell(props: { title: string; children: ReactNode }) {
               <div className="relative">
                 <button
                   type="button"
-                  className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900 shadow-sm"
+                  className={[
+                    "rounded-full border px-3 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition active:scale-[0.98]",
+                    menuOpen ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-200 bg-white",
+                  ].join(" ")}
                   onClick={() => setMenuOpen((v) => !v)}
                 >
                   Menu
@@ -114,7 +134,7 @@ export function AppShell(props: { title: string; children: ReactNode }) {
             <button
               type="button"
               onClick={() => void logout()}
-              className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900 shadow-sm"
+              className={["rounded-full border px-3 py-2 text-sm font-semibold shadow-sm transition active:scale-[0.98]", isAdminOrManager ? "border-slate-300 bg-white text-slate-900" : "border-neutral-200 bg-white text-neutral-900"].join(" ")}
               title="Log out"
             >
               Logout

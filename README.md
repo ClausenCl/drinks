@@ -31,7 +31,13 @@ Usernames are treated case-insensitively on login (so `Admin` works too).
 - Admin / Getränkeminister:
   - Open `/` → click the small “Admin / Getränkeminister login” link (or go to `/admin-login`).
   - Sign in with `loginName` + password (admins/ministers are not drink-consumer accounts).
-  - Fridge management now includes downloadable fridge QR codes (`PNG`) that deep-link to the fridge page.
+  - `/admin` and `/manager` now act as operation homes with domain pages:
+    - `Residents`: resident directory + per-resident workspace (profile, PIN reset, drinks, manual charges, bill shares).
+    - `Fridges`: fridge setup/items and QR download.
+    - `Finance`: unbilled view, bills, manual charges, billing runs.
+    - `System`: house/minister setup and audit logs (admin), scope summary (manager).
+  - Fridge QR previews now refresh correctly when switching selected fridge.
+  - Managers are house-scoped and can manage resident entries only within their house.
 
 ## Production deployment notes
 
@@ -47,3 +53,9 @@ Usernames are treated case-insensitively on login (so `Admin` works too).
 ## Notes
 - Prisma schema lives at `prisma/schema.prisma`.
 - API routes are in `app/frontend/pages/api/*` and call shared code in `backend/*`.
+- New resident-ledger management API routes:
+  - `GET /api/manage/users/:id/ledger`
+  - `POST /api/manage/users/:id/drinks`
+  - `DELETE /api/manage/users/:id/drinks/:entryId`
+  - `POST /api/manage/users/:id/manual-charges`
+  - `DELETE /api/manage/users/:id/manual-charges/:chargeId`

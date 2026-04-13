@@ -19,6 +19,7 @@ export function FridgeManager() {
   const [createPrice, setCreatePrice] = useState("");
   const [createActive, setCreateActive] = useState(true);
   const [rowStatus, setRowStatus] = useState<Record<string, string>>({});
+  const [qrVersion, setQrVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +43,7 @@ export function FridgeManager() {
 
   useEffect(() => {
     if (!selectedId) return;
+    setQrVersion((value) => value + 1);
     let cancelled = false;
     (async () => {
       setStatus(null);
@@ -142,7 +144,8 @@ export function FridgeManager() {
               </p>
               <div className="mt-3 flex items-center gap-3">
                 <Image
-                  src={`/api/manage/fridges/${details.id}/qr`}
+                  key={`${details.id}-${qrVersion}`}
+                  src={`/api/manage/fridges/${details.id}/qr?v=${qrVersion}`}
                   alt={`QR code for ${details.name}`}
                   width={112}
                   height={112}
@@ -150,7 +153,7 @@ export function FridgeManager() {
                   unoptimized
                 />
                 <a
-                  href={`/api/manage/fridges/${details.id}/qr?download=1`}
+                  href={`/api/manage/fridges/${details.id}/qr?download=1&v=${qrVersion}`}
                   className="rounded-xl bg-black px-3 py-2 text-sm font-semibold text-white"
                 >
                   Download PNG

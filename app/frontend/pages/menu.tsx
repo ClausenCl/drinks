@@ -2,14 +2,12 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AppShell } from "../components/AppShell";
-import { FridgeSelector, type FridgeOption } from "../components/FridgeSelector";
 import { useMe } from "../components/useMe";
 
 export default function MenuPage() {
   const { me, loading } = useMe();
   const router = useRouter();
-  const [fridges, setFridges] = useState<FridgeOption[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [fridges, setFridges] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (!loading && !me) void router.replace("/");
@@ -33,19 +31,25 @@ export default function MenuPage() {
     <AppShell title="Menu">
       <div className="space-y-4">
         <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="text-sm text-neutral-600">Logged in as</div>
-          <div className="mt-1 text-base font-semibold">{me ? me.name : "..."}</div>
+          <div className="text-sm font-semibold">Choose fridge</div>
+          <div className="mt-1 text-xs text-neutral-600">Tap the fridge where you took your drink.</div>
         </div>
 
-        <FridgeSelector fridges={fridges} value={selected} onChange={(id) => setSelected(id)} />
-
-        {selected ? (
-          <Link className="block w-full rounded-xl bg-black px-4 py-3 text-center text-base font-semibold text-white shadow-sm" href={`/fridge/${selected}`}>
-            Open fridge
-          </Link>
-        ) : (
+        {fridges.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
-            Select a fridge to start logging.
+            No active fridges found.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {fridges.map((fridge) => (
+              <Link
+                key={fridge.id}
+                href={`/fridge/${fridge.id}`}
+                className="block w-full rounded-xl border border-neutral-200 bg-white px-4 py-4 text-left text-base font-semibold shadow-sm transition hover:bg-neutral-50 active:scale-[0.99]"
+              >
+                {fridge.name}
+              </Link>
+            ))}
           </div>
         )}
       </div>
