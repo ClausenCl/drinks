@@ -11,20 +11,49 @@ export type Me = {
   houseColor?: string;
 };
 
+let cachedMe: Me | null | undefined;
+let cachedAt = 0;
+let inFlight: Promise<Me | null> | null = null;
+const CACHE_TTL_MS = 10_000;
+
+async function fetchMe(force = false) {
+  const now = Date.now();
+  if (!force && cachedMe !== undefined && now - cachedAt < CACHE_TTL_MS) {
+    return cachedMe;
+  }
+  if (!force && inFlight) {
+    return inFlight;
+  }
+
+  inFlight = (async () => {
+    const res = await fetch("/api/users/me");
+    if (!res.ok) {
+      cachedMe = null;
+      cachedAt = Date.now();
+      return null;
+    }
+    const data = (await res.json()) as Me;
+    cachedMe = data;
+    cachedAt = Date.now();
+    return data;
+  })();
+
+  try {
+    return await inFlight;
+  } finally {
+    inFlight = null;
+  }
+}
+
 export function useMe() {
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    async function loadMe() {
+    async function loadMe(force = false) {
       try {
-        const res = await fetch("/api/users/me");
-        if (!res.ok) {
-          if (!cancelled) setMe(null);
-          return;
-        }
-        const data = (await res.json()) as Me;
+        const data = await fetchMe(force);
         if (!cancelled) setMe(data);
       } finally {
         if (!cancelled) setLoading(false);
@@ -34,7 +63,9 @@ export function useMe() {
 
     function onSessionChanged() {
       setLoading(true);
-      void loadMe();
+      cachedMe = undefined;
+      cachedAt = 0;
+      void loadMe(true);
     }
     window.addEventListener("drinks:session-changed", onSessionChanged);
     return () => {

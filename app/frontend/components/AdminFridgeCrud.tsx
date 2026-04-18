@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 type Fridge = {
   id: string;
   name: string;
-  locationDescription: string;
   active: boolean;
   hasHistory: boolean;
 };
@@ -14,9 +13,8 @@ export function AdminFridgeCrud() {
   const [status, setStatus] = useState<string | null>(null);
 
   const [name, setName] = useState("");
-  const [locationDescription, setLocationDescription] = useState("");
 
-  const [drafts, setDrafts] = useState<Record<string, { name: string; locationDescription: string; active: boolean }>>({});
+  const [drafts, setDrafts] = useState<Record<string, { name: string; active: boolean }>>({});
   const [rowStatus, setRowStatus] = useState<Record<string, string>>({});
 
   async function refresh() {
@@ -27,7 +25,7 @@ export function AdminFridgeCrud() {
     setDrafts((prev) => {
       const next = { ...prev };
       for (const f of data) {
-        if (!next[f.id]) next[f.id] = { name: f.name, locationDescription: f.locationDescription, active: f.active };
+        if (!next[f.id]) next[f.id] = { name: f.name, active: f.active };
       }
       return next;
     });
@@ -54,7 +52,7 @@ export function AdminFridgeCrud() {
     const res = await fetch("/api/admin/fridges", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, locationDescription }),
+      body: JSON.stringify({ name }),
     });
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
@@ -62,7 +60,6 @@ export function AdminFridgeCrud() {
       return;
     }
     setName("");
-    setLocationDescription("");
     setStatus("Created");
     await refresh();
   }
@@ -98,17 +95,8 @@ export function AdminFridgeCrud() {
             <div className="mb-1 text-xs font-medium text-neutral-600">New fridge name</div>
             <input className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-base" value={name} onChange={(e) => setName(e.target.value)} />
           </label>
-          <label className="block">
-            <div className="mb-1 text-xs font-medium text-neutral-600">Location</div>
-            <input
-              className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-base"
-              value={locationDescription}
-              onChange={(e) => setLocationDescription(e.target.value)}
-              placeholder="e.g. Kitchen, left shelf"
-            />
-          </label>
           {status ? <div className="rounded-xl bg-neutral-100 p-3 text-sm text-neutral-800">{status}</div> : null}
-          <button type="submit" className="w-full rounded-xl bg-black px-4 py-3 text-base font-semibold text-white" disabled={!name.trim() || !locationDescription.trim()}>
+          <button type="submit" className="w-full rounded-xl bg-black px-4 py-3 text-base font-semibold text-white" disabled={!name.trim()}>
             Create fridge
           </button>
         </div>
@@ -121,7 +109,7 @@ export function AdminFridgeCrud() {
         ) : (
           <div className="mt-3 space-y-2">
             {fridges.map((f) => {
-              const draft = drafts[f.id] ?? { name: f.name, locationDescription: f.locationDescription, active: f.active };
+              const draft = drafts[f.id] ?? { name: f.name, active: f.active };
               const st = rowStatus[f.id];
               return (
                 <div key={f.id} className="rounded-xl border border-neutral-200 p-3">
@@ -151,14 +139,6 @@ export function AdminFridgeCrud() {
                       />
                       {f.hasHistory ? <div className="mt-1 text-xs text-neutral-500">Renaming blocked once purchases exist.</div> : null}
                     </label>
-                    <label className="block">
-                      <div className="mb-1 text-xs font-medium text-neutral-600">Location</div>
-                      <input
-                        className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                        value={draft.locationDescription}
-                        onChange={(e) => setDrafts((p) => ({ ...p, [f.id]: { ...draft, locationDescription: e.target.value } }))}
-                      />
-                    </label>
                   </div>
 
                   <button type="button" className="mt-3 w-full rounded-xl bg-black px-3 py-2 text-sm font-semibold text-white" onClick={() => void saveFridge(f.id)}>
@@ -174,4 +154,3 @@ export function AdminFridgeCrud() {
     </div>
   );
 }
-

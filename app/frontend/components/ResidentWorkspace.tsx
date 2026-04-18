@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
+import { BillDetailsDialog } from "./BillDetailsDialog";
 import { useMe } from "./useMe";
 
 type House = { id: string; name: string };
@@ -72,6 +73,7 @@ export function ResidentWorkspace(props: { basePath: "/admin" | "/manager" }) {
 
   const [chargeTitle, setChargeTitle] = useState("");
   const [chargeAmount, setChargeAmount] = useState("");
+  const [detailsBillId, setDetailsBillId] = useState("");
 
   const selectedFridge = useMemo(() => data?.drinkOptions.find((fridge) => fridge.id === drinkFridgeId) ?? null, [data?.drinkOptions, drinkFridgeId]);
   const canAddDrink = Boolean(drinkFridgeId && drinkItemId && (selectedFridge?.items.length ?? 0) > 0);
@@ -511,7 +513,16 @@ export function ResidentWorkspace(props: { basePath: "/admin" | "/manager" }) {
                     {new Date(share.createdAt).toLocaleString()} · {share.billed ? "invoiced" : "not invoiced"}
                   </div>
                 </div>
-                <div className="tabular-nums text-xs font-semibold">{share.shareAmount} EUR</div>
+                <div className="text-right">
+                  <button
+                    type="button"
+                    className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs font-semibold"
+                    onClick={() => setDetailsBillId(share.billId)}
+                  >
+                    Details
+                  </button>
+                  <div className="mt-1 tabular-nums text-xs font-semibold">{share.shareAmount} EUR</div>
+                </div>
               </div>
             </div>
           ))}
@@ -520,6 +531,7 @@ export function ResidentWorkspace(props: { basePath: "/admin" | "/manager" }) {
           ) : null}
         </div>
       ) : null}
+      {detailsBillId ? <BillDetailsDialog billId={detailsBillId} onClose={() => setDetailsBillId("")} /> : null}
     </div>
   );
 }

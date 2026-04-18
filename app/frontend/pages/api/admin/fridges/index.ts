@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === "GET") {
     const fridges = await prisma.fridge.findMany({
       orderBy: { name: "asc" },
-      select: { id: true, name: true, locationDescription: true, active: true, _count: { select: { drinkEntries: true } } },
+      select: { id: true, name: true, active: true, _count: { select: { drinkEntries: true } } },
     });
     return json(
       res,
@@ -20,7 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       fridges.map((f) => ({
         id: f.id,
         name: f.name,
-        locationDescription: f.locationDescription,
         active: f.active,
         hasHistory: f._count.drinkEntries > 0,
       }))
@@ -29,12 +28,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === "POST") {
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
-    const locationDescription = typeof req.body?.locationDescription === "string" ? req.body.locationDescription.trim() : "";
     if (!name) return badRequest(res, "Missing name");
-    if (!locationDescription) return badRequest(res, "Missing locationDescription");
     const created = await prisma.fridge.create({
-      data: { name, locationDescription, active: true },
-      select: { id: true, name: true, locationDescription: true, active: true },
+      data: { name, locationDescription: name, active: true },
+      select: { id: true, name: true, active: true },
     });
     return json(res, 201, { ...created, hasHistory: false });
   }

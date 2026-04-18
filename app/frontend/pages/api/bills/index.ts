@@ -70,11 +70,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "GET") {
-    // Admin/minister overview. Ministers only see bills created by residents in their house.
+    // Admin/minister overview. Ministers only see bills that include participants from their house.
     if (session.role === UserRole.BEWOHNER) return unauthorized(res);
 
     const where =
-      session.role === UserRole.GETRAENKEMINISTER ? { createdBy: { houseId: session.houseId } } : {};
+      session.role === UserRole.GETRAENKEMINISTER
+        ? { participants: { some: { user: { houseId: session.houseId } } } }
+        : {};
 
     const bills = await prisma.bill.findMany({
       where,

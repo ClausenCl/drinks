@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMe } from "./useMe";
+import { BillDetailsDialog } from "./BillDetailsDialog";
 
 type BillOverview = {
   id: string;
@@ -15,6 +16,7 @@ export function BillsManagerList() {
   const { me } = useMe();
   const [bills, setBills] = useState<BillOverview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailsBillId, setDetailsBillId] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -44,25 +46,31 @@ export function BillsManagerList() {
       ) : (
         <ul className="mt-3 space-y-2">
           {bills.map((b) => (
-            <li key={b.id} className="rounded-xl border border-neutral-200 p-3 text-sm">
-              <div className="flex items-baseline justify-between gap-3">
-                <div className="min-w-0 truncate font-semibold">{b.title}</div>
-                <div className="shrink-0 tabular-nums">{b.totalAmount} €</div>
-              </div>
-              <div className="mt-1 text-xs text-neutral-500">
-                {me?.role === "ADMIN" ? `${b.createdBy.house.name} · ` : ""}
-                by {b.createdBy.name}
-                {b.paidBy ? ` · paid by ${b.paidBy.name}` : ""}
-                {" · "}
-                {b.participantsCount} participant{b.participantsCount === 1 ? "" : "s"}
-                {" · "}
-                {new Date(b.createdAt).toLocaleString()}
-              </div>
+            <li key={b.id}>
+              <button
+                type="button"
+                className="w-full rounded-xl border border-neutral-200 p-3 text-left text-sm transition hover:bg-neutral-50 active:scale-[0.99]"
+                onClick={() => setDetailsBillId(b.id)}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="min-w-0 truncate font-semibold">{b.title}</div>
+                  <div className="shrink-0 tabular-nums">{b.totalAmount} €</div>
+                </div>
+                <div className="mt-1 text-xs text-neutral-500">
+                  {me?.role === "ADMIN" ? `${b.createdBy.house.name} · ` : ""}
+                  by {b.createdBy.name}
+                  {b.paidBy ? ` · paid by ${b.paidBy.name}` : ""}
+                  {" · "}
+                  {b.participantsCount} participant{b.participantsCount === 1 ? "" : "s"}
+                  {" · "}
+                  {new Date(b.createdAt).toLocaleString()} · tap for details
+                </div>
+              </button>
             </li>
           ))}
         </ul>
       )}
+      {detailsBillId ? <BillDetailsDialog billId={detailsBillId} onClose={() => setDetailsBillId("")} /> : null}
     </div>
   );
 }
-

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { AppShell } from "../components/AppShell";
+import { BillDetailsDialog } from "../components/BillDetailsDialog";
 import { DrinkHistoryList, type DrinkHistoryItem } from "../components/DrinkHistoryList";
 import { useMe } from "../components/useMe";
 
-type BillShare = { id: string; title: string; createdAt: string; shareAmount: string; billed: boolean };
+type BillShare = { id: string; billId: string; title: string; createdAt: string; shareAmount: string; billed: boolean };
 type ManualCharge = { id: string; title: string; createdAt: string; amount: string; billed: boolean };
 type InvoiceSummary = { id: string; title: string; createdAt: string; total: string };
 type InvoiceDetail = {
@@ -28,6 +29,7 @@ export default function HistoryPage() {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("");
   const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetail | null>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [detailsBillId, setDetailsBillId] = useState("");
   const { me, loading } = useMe();
   const router = useRouter();
   const canLoadProtectedData = me?.role === "BEWOHNER" && me.pinVerified !== false;
@@ -159,7 +161,16 @@ export default function HistoryPage() {
                         <div className="min-w-0 truncate text-sm font-semibold">{b.title}</div>
                         <div className="shrink-0 tabular-nums text-sm text-neutral-700">{b.shareAmount}</div>
                       </div>
-                      <div className="mt-1 text-xs text-neutral-500">{new Date(b.createdAt).toLocaleString()}</div>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <div className="text-xs text-neutral-500">{new Date(b.createdAt).toLocaleString()}</div>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs font-semibold"
+                          onClick={() => setDetailsBillId(b.billId)}
+                        >
+                          Details
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -256,9 +267,18 @@ export default function HistoryPage() {
                     ) : (
                       <ul className="mt-2 space-y-2">
                         {invoiceDetail.eventBills.map((bill) => (
-                          <li key={bill.id} className="flex items-baseline justify-between gap-3 text-sm">
+                          <li key={bill.id} className="flex items-center justify-between gap-3 text-sm">
                             <div className="min-w-0 truncate">{bill.title}</div>
-                            <div className="shrink-0 tabular-nums">{bill.total}</div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs font-semibold"
+                                onClick={() => setDetailsBillId(bill.billId)}
+                              >
+                                Details
+                              </button>
+                              <div className="shrink-0 tabular-nums">{bill.total}</div>
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -286,6 +306,7 @@ export default function HistoryPage() {
           </>
         )}
       </div>
+      {detailsBillId ? <BillDetailsDialog billId={detailsBillId} onClose={() => setDetailsBillId("")} /> : null}
     </AppShell>
   );
 }

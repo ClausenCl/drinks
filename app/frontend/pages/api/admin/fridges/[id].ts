@@ -14,12 +14,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!id) return notFound(res);
 
   const nameRaw = typeof req.body?.name === "string" ? req.body.name.trim() : "";
-  const locationRaw = typeof req.body?.locationDescription === "string" ? req.body.locationDescription.trim() : "";
   const activeRaw = typeof req.body?.active === "boolean" ? (req.body.active as boolean) : undefined;
 
-  const update: { name?: string; locationDescription?: string; active?: boolean } = {};
+  const update: { name?: string; active?: boolean } = {};
   if (nameRaw) update.name = nameRaw;
-  if (locationRaw) update.locationDescription = locationRaw;
   if (activeRaw !== undefined) update.active = activeRaw;
   if (Object.keys(update).length === 0) return badRequest(res, "No changes");
 
@@ -31,14 +29,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const updated = await prisma.fridge.update({
     where: { id },
     data: update,
-    select: { id: true, name: true, locationDescription: true, active: true, _count: { select: { drinkEntries: true } } },
+    select: { id: true, name: true, active: true, _count: { select: { drinkEntries: true } } },
   });
   return json(res, 200, {
     id: updated.id,
     name: updated.name,
-    locationDescription: updated.locationDescription,
     active: updated.active,
     hasHistory: updated._count.drinkEntries > 0,
   });
 }
-

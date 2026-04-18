@@ -5,7 +5,6 @@ type Fridge = { id: string; name: string };
 type FridgeDetails = {
   id: string;
   name: string;
-  locationDescription: string;
   items: { id: string; name: string; price: string; active: boolean; createdAt: string }[];
 };
 

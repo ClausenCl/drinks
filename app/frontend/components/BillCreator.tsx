@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { BillDetailsDialog } from "./BillDetailsDialog";
 
 type UserHit = { id: string; name: string; houseId: string; houseName: string };
 type MyBill = { id: string; billId: string; title: string; createdAt: string; shareAmount: string; billed: boolean };
@@ -12,6 +13,7 @@ export function BillCreator() {
   const [status, setStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [myBills, setMyBills] = useState<MyBill[]>([]);
+  const [detailsBillId, setDetailsBillId] = useState<string>("");
 
   const selectedList = useMemo(() => Object.values(selected), [selected]);
 
@@ -169,19 +171,26 @@ export function BillCreator() {
         ) : (
           <ul className="mt-3 space-y-2">
             {myBills.map((b) => (
-              <li key={b.id} className="rounded-xl border border-neutral-200 p-3 text-sm">
-                <div className="flex items-baseline justify-between gap-3">
-                  <div className="min-w-0 truncate font-semibold">{b.title}</div>
-                  <div className="shrink-0 tabular-nums">{b.shareAmount}</div>
-                </div>
-                <div className="mt-1 text-xs text-neutral-500">
-                  {new Date(b.createdAt).toLocaleString()} · {b.billed ? "invoiced" : "not invoiced"}
-                </div>
+              <li key={b.id}>
+                <button
+                  type="button"
+                  className="w-full rounded-xl border border-neutral-200 p-3 text-left text-sm transition hover:bg-neutral-50 active:scale-[0.99]"
+                  onClick={() => setDetailsBillId(b.billId)}
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <div className="min-w-0 truncate font-semibold">{b.title}</div>
+                    <div className="shrink-0 tabular-nums">{b.shareAmount}</div>
+                  </div>
+                  <div className="mt-1 text-xs text-neutral-500">
+                    {new Date(b.createdAt).toLocaleString()} · {b.billed ? "invoiced" : "not invoiced"} · tap for details
+                  </div>
+                </button>
               </li>
             ))}
           </ul>
         )}
       </div>
+      {detailsBillId ? <BillDetailsDialog billId={detailsBillId} onClose={() => setDetailsBillId("")} /> : null}
     </div>
   );
 }

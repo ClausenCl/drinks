@@ -5,9 +5,11 @@ import { forbidden, json, methodNotAllowed, notFound, unauthorized } from "@back
 import { getSessionUser } from "@backend/services/session";
 
 async function ministerCanAccessFridge(userId: string, fridgeId: string) {
-  const perms = await prisma.ministerFridgePermission.findMany({ where: { userId }, select: { fridgeId: true } });
-  if (perms.length === 0) return false;
-  return perms.some((p) => p.fridgeId === fridgeId);
+  const permission = await prisma.ministerFridgePermission.findFirst({
+    where: { userId, fridgeId },
+    select: { id: true },
+  });
+  return Boolean(permission);
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -29,7 +31,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     select: {
       id: true,
       name: true,
-      locationDescription: true,
       active: true,
       fridgeItems: {
         orderBy: [{ active: "desc" }, { name: "asc" }],
@@ -42,7 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   return json(res, 200, {
     id: fridge.id,
     name: fridge.name,
-    locationDescription: fridge.locationDescription,
     active: fridge.active,
     items: fridge.fridgeItems.map((item) => ({
       id: item.id,
