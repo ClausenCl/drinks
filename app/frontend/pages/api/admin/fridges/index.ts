@@ -28,10 +28,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === "POST") {
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    const managerIdsRaw = Array.isArray(req.body?.managerIds)
+      ? (req.body.managerIds as unknown[]).filter((value): value is string => typeof value === "string")
+      : [];
+    const managerIds = Array.from(new Set(managerIdsRaw));
     if (!name) return badRequest(res, "Missing name");
-    const created = await prisma.fridge.create({
-      data: { name, locationDescription: name, active: true },
-      select: { id: true, name: true, active: true },
+    const created = await prisma.$transaction(async (tx) => {
+      const fridge = await tx.fridge.create({
+        data: { name, locationDescription: name, active: true },
+        select: { id: true, name: true, active: true },
+      });
+
+      if (managerIds.length > 0) {
+        const managers = await tx.user.findMany({
+          where: { id: { in: managerIds }, role: UserRole.GETRAENKEMINISTER, active: true },
+          select: { id: true },
+        });
+        for (const manager of managers) {
+          await tx.ministerFridgePermission.create({
+            data: { userId: manager.id, fridgeId: fridge.id },
+          });
+        }
+      }
+
+      return fridge;
     });
     return json(res, 201, { ...created, hasHistory: false });
   }

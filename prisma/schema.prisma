@@ -220,6 +220,7 @@ model BillParticipant {
   id          String  @id @default(uuid()) @db.Uuid
   billId      String  @db.Uuid @map("bill_id")
   userId      String  @db.Uuid @map("user_id")
+  weight      Int     @default(1)
   shareAmount Decimal @db.Decimal(10, 2) @map("share_amount")
   billedInId  String? @db.Uuid @map("billed_in_id")
 

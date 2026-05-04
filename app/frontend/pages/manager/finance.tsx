@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { AppShell } from "../../components/AppShell";
 import { BillingRuns } from "../../components/BillingRuns";
 import { BillsManagerList } from "../../components/BillsManagerList";
+import { FridgeItemAnalyticsPanel } from "../../components/FridgeItemAnalyticsPanel";
 import { ManualChargeCreator } from "../../components/ManualChargeCreator";
 import { OpsDomainTabs } from "../../components/OpsDomainNav";
 import { ResidentConsumptionTable } from "../../components/ResidentConsumptionTable";
@@ -22,6 +23,7 @@ export default function ManagerFinancePage() {
       <div className="space-y-4">
         <OpsDomainTabs basePath="/manager" active="finance" />
         <ResidentConsumptionTable />
+        <FridgeItemAnalyticsPanel />
         <BillsManagerList />
         <ManualChargeCreator />
         <BillingRuns />

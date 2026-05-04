@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { UserRole } from "@prisma/client";
 import { forbidden, json, unauthorized } from "./http";
+import { logAuthEvent } from "./observability";
 import { getSessionUser, type SessionUser } from "@backend/services/session";
 
 const rateLimitStore = new Map<string, { hits: number; resetAt: number }>();
@@ -113,6 +114,17 @@ export function enforceRateLimit(
   if (nextHits > options.limit) {
     const retryAfterSeconds = Math.max(1, Math.ceil((resetAt - now) / 1000));
     res.setHeader("Retry-After", String(retryAfterSeconds));
+    if (options.bucket.startsWith("auth-")) {
+      const flow =
+        options.bucket === "auth-admin"
+          ? "admin"
+          : options.bucket === "auth-resident"
+            ? "resident-select"
+            : options.bucket === "auth-resident-verify"
+              ? "resident-verify"
+              : "legacy-login";
+      logAuthEvent(req, { flow, outcome: "rate_limited", reason: "RATE_LIMITED", bucket: options.bucket });
+    }
     json(res, 429, { error: "RATE_LIMITED", retryAfterSeconds });
     return false;
   }

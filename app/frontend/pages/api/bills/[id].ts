@@ -33,6 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       participants: {
         select: {
           id: true,
+          weight: true,
           shareAmount: true,
           user: { select: { id: true, name: true, house: { select: { id: true, name: true } } } },
         },
@@ -51,6 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     paidBy: bill.paidBy,
     participants: bill.participants.map((participant) => ({
       id: participant.id,
+      weight: participant.weight,
       shareAmount: participant.shareAmount.toFixed(2),
       user: participant.user,
     })),

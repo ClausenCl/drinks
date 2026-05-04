@@ -25,7 +25,8 @@ Usernames are treated case-insensitively on login (so `Admin` works too).
 - Residents:
   - Open `/` and pick a house (A–E).
   - Pick your name; depending on your setting, PIN is requested either immediately or deferred.
-  - Buying drinks (`/menu` and `/fridge/[id]`) does not require PIN in deferred mode.
+  - Buying drinks (`/buy` and `/fridge/[id]`) does not require PIN in deferred mode.
+  - `/menu` now redirects to `/buy` for backwards compatibility.
   - PIN is required for protected resident pages such as History, Bills and Settings.
   - New member creation requires a 4-digit PIN and supports an optional “ask PIN immediately after name selection” mode.
 - Admin / Getränkeminister:
@@ -36,6 +37,9 @@ Usernames are treated case-insensitively on login (so `Admin` works too).
     - `Fridges`: fridge setup/items and QR download.
     - `Finance`: unbilled view, bills, manual charges, billing runs.
     - `System`: house/minister setup and audit logs (admin), scope summary (manager).
+  - Operation homes now include quick actions (resident edit, fridge item update, start billing run).
+  - Finance pages include fridge-item analytics with CSV export (`/api/reports/fridge-items`).
+  - Fridge domains include a print-ready all-fridge QR sheet.
   - Fridge QR previews now refresh correctly when switching selected fridge.
   - Managers are house-scoped and can manage resident entries only within their house.
 
@@ -48,7 +52,10 @@ Usernames are treated case-insensitively on login (so `Admin` works too).
   - `backup` (daily backup loop with optional SMTP email delivery).
 - Set `PUBLIC_BASE_URL` (for QR links), e.g. `http://drinks.local`.
 - To use email backups, set: `BACKUP_EMAIL_TO`, `BACKUP_EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`.
+- Optional backup-failure webhook alerts: `BACKUP_ALERT_WEBHOOK_URL`, `BACKUP_ALERT_WEBHOOK_AUTH`.
 - Backup defaults: enabled, every 24h (`BACKUP_INTERVAL_SECONDS=86400`), retention 14 days.
+- Restore drill command: `cd app/frontend && npm run backup:restore:drill` (requires `BACKUP_RESTORE_TEST_DB_URL`).
+- PWA basics are enabled (manifest, service worker, offline fallback at `/offline`).
 
 ## Notes
 - Prisma schema lives at `prisma/schema.prisma`.

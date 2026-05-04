@@ -1,12 +1,11 @@
-import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { AppShell } from "../../components/AppShell";
-import { FridgeManager } from "../../components/FridgeManager";
+import { FridgeQrSheet } from "../../components/FridgeQrSheet";
 import { OpsDomainTabs } from "../../components/OpsDomainNav";
 import { useMe } from "../../components/useMe";
 
-export default function ManagerFridgesPage() {
+export default function ManagerFridgesQrSheetPage() {
   const { me, loading } = useMe();
   const router = useRouter();
 
@@ -16,15 +15,10 @@ export default function ManagerFridgesPage() {
   }, [loading, me, router]);
 
   return (
-    <AppShell title="Manager · Fridges">
+    <AppShell title="Manager · QR Sheet">
       <div className="space-y-4">
         <OpsDomainTabs basePath="/manager" active="fridges" />
-        <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
-          <Link href="/manager/fridges-qr-sheet" className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-neutral-50">
-            Open printable QR sheet
-          </Link>
-        </div>
-        <FridgeManager />
+        <FridgeQrSheet basePath="/manager" />
       </div>
     </AppShell>
   );

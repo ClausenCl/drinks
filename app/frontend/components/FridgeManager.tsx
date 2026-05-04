@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/router";
 
 type Fridge = { id: string; name: string };
 type FridgeDetails = {
@@ -9,6 +10,8 @@ type FridgeDetails = {
 };
 
 export function FridgeManager() {
+  const router = useRouter();
+  const focusFridgeId = typeof router.query.focus === "string" ? router.query.focus : "";
   const [fridges, setFridges] = useState<Fridge[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [details, setDetails] = useState<FridgeDetails | null>(null);
@@ -29,7 +32,10 @@ export function FridgeManager() {
         const data = (await res.json()) as Fridge[];
         if (cancelled) return;
         setFridges(data);
-        if (!selectedId && data[0]) setSelectedId(data[0].id);
+        if (!selectedId && data[0]) {
+          const preferredId = focusFridgeId && data.some((fridge) => fridge.id === focusFridgeId) ? focusFridgeId : data[0].id;
+          setSelectedId(preferredId);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -38,7 +44,7 @@ export function FridgeManager() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [focusFridgeId]);
 
   useEffect(() => {
     if (!selectedId) return;

@@ -9,7 +9,7 @@ export function BillCreator() {
   const [total, setTotal] = useState("");
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<UserHit[]>([]);
-  const [selected, setSelected] = useState<Record<string, UserHit>>({});
+  const [selected, setSelected] = useState<Record<string, UserHit & { weight: number }>>({});
   const [status, setStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [myBills, setMyBills] = useState<MyBill[]>([]);
@@ -62,6 +62,7 @@ export function BillCreator() {
           totalAmount: total,
           paidByUserId: null,
           participantIds: selectedList.map((u) => u.id),
+          participantWeights: Object.fromEntries(selectedList.map((u) => [u.id, u.weight])),
         }),
       });
       if (!res.ok) {
@@ -128,7 +129,7 @@ export function BillCreator() {
                     setSelected((prev) => {
                       const next = { ...prev };
                       if (next[u.id]) delete next[u.id];
-                      else next[u.id] = u;
+                      else next[u.id] = { ...u, weight: 1 };
                       return next;
                     })
                   }
@@ -146,8 +147,33 @@ export function BillCreator() {
         ) : null}
 
         {selectedList.length > 0 ? (
-          <div className="rounded-xl bg-neutral-50 p-3 text-sm text-neutral-800">
-            Participants: {selectedList.map((u) => u.name).join(", ")}
+          <div className="rounded-xl bg-neutral-50 p-3">
+            <div className="text-xs font-medium text-neutral-600">Selected participants</div>
+            <div className="mt-2 space-y-2">
+              {selectedList.map((user) => (
+                <div key={user.id} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{user.name}</div>
+                    <div className="truncate text-xs text-neutral-500">{user.houseName}</div>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <span className="text-neutral-600">Weight</span>
+                    <input
+                      className="w-16 rounded-lg border border-neutral-200 px-2 py-1 text-right tabular-nums"
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={user.weight}
+                      onChange={(e) => {
+                        const nextWeight = Math.max(1, Math.min(20, Number(e.target.value) || 1));
+                        setSelected((prev) => ({ ...prev, [user.id]: { ...prev[user.id], weight: nextWeight } }));
+                      }}
+                    />
+                    <span className="text-neutral-600">x</span>
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
 

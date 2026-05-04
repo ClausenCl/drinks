@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
+import { useMe } from "../../components/useMe";
 
 type Member = { id: string; name: string; requirePinOnPurchase: boolean };
 type House = { id: string; name: string };
@@ -12,6 +13,7 @@ export default function HouseMembersPage() {
   const router = useRouter();
   const houseId = typeof router.query.id === "string" ? router.query.id : null;
   const next = useMemo(() => (typeof router.query.next === "string" ? router.query.next : ""), [router.query.next]);
+  const { me, loading: loadingMe } = useMe();
 
   const [house, setHouse] = useState<House | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -30,6 +32,15 @@ export default function HouseMembersPage() {
   const [pinError, setPinError] = useState<string | null>(null);
   const [pinLoading, setPinLoading] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (loadingMe || !me) return;
+    if (me.role === "BEWOHNER") {
+      void router.replace(next || "/buy");
+      return;
+    }
+    void router.replace(me.role === "ADMIN" ? "/admin" : "/manager");
+  }, [loadingMe, me, next, router]);
 
   useEffect(() => {
     if (!houseId) return;
@@ -67,7 +78,7 @@ export default function HouseMembersPage() {
       const body = (await res.json().catch(() => null)) as { error?: string; message?: string } | null;
       return body?.error ?? body?.message ?? "LOGIN_FAILED";
     }
-    await router.push(next || "/menu");
+    await router.push(next || "/buy");
     return null;
   }
 

@@ -19,10 +19,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const participantIds = Array.isArray(req.body?.participantIds)
       ? (req.body.participantIds as unknown[]).filter((x): x is string => typeof x === "string")
       : [];
+    const participantWeightsInput = req.body?.participantWeights;
 
     if (!title) return badRequest(res, "Missing title");
     const total = Number(totalRaw.replace(",", "."));
     if (!Number.isFinite(total) || total <= 0) return badRequest(res, "Invalid totalAmount");
+
+    const normalizedWeights = new Map<string, number>();
+    if (participantWeightsInput && typeof participantWeightsInput === "object") {
+      for (const [userId, weight] of Object.entries(participantWeightsInput as Record<string, unknown>)) {
+        if (typeof userId !== "string") continue;
+        const parsed = typeof weight === "number" ? weight : Number(weight);
+        if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 20) {
+          normalizedWeights.set(userId, parsed);
+        }
+      }
+    }
 
     const uniqParticipants = Array.from(new Set(participantIds));
     if (!uniqParticipants.includes(paidByUserId)) uniqParticipants.push(paidByUserId);
@@ -34,12 +46,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     if (users.length !== uniqParticipants.length) return badRequest(res, "Unknown participant");
 
-    const n = uniqParticipants.length;
-    const share = total / n;
-    const shares = uniqParticipants.map((uid) => ({
-      userId: uid,
-      shareAmount: uid === paidByUserId ? -(total - share) : share,
+    const participants = uniqParticipants.map((userId) => ({
+      userId,
+      weight: normalizedWeights.get(userId) ?? 1,
     }));
+    const totalWeight = participants.reduce((sum, participant) => sum + participant.weight, 0);
+    if (totalWeight <= 0) return badRequest(res, "Invalid participant weights");
+
+    const shares = participants.map((participant) => {
+      const ownShare = (total * participant.weight) / totalWeight;
+      return {
+        userId: participant.userId,
+        weight: participant.weight,
+        shareAmount: participant.userId === paidByUserId ? -(total - ownShare) : ownShare,
+      };
+    });
 
     const created = await prisma.$transaction(async (tx) => {
       const bill = await tx.bill.create({
@@ -51,6 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           participants: {
             create: shares.map((s) => ({
               userId: s.userId,
+              weight: s.weight,
               shareAmount: s.shareAmount.toFixed(2),
             })),
           },

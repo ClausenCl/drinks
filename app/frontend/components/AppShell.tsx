@@ -115,8 +115,8 @@ export function AppShell(props: { title: string; children: ReactNode }) {
                 </button>
                 {menuOpen ? (
                   <div className="absolute right-0 top-11 z-30 min-w-40 space-y-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-md">
-                    <Link href="/menu" className="block rounded-lg px-3 py-2 text-sm hover:bg-neutral-100">
-                      Menu
+                    <Link href="/buy" className="block rounded-lg px-3 py-2 text-sm hover:bg-neutral-100">
+                      Buy drinks
                     </Link>
                     <Link href="/history" className="block rounded-lg px-3 py-2 text-sm hover:bg-neutral-100">
                       History

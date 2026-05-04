@@ -121,7 +121,7 @@ export function BillingRuns() {
         )}
       </div>
 
-      <form onSubmit={createRun} className="rounded-2xl border border-neutral-200 bg-white p-4">
+      <form id="billing-create" onSubmit={createRun} className="rounded-2xl border border-neutral-200 bg-white p-4">
         <div className="text-sm font-semibold">Create billing run</div>
         <div className="mt-3 space-y-3">
           {me?.role === "ADMIN" ? (

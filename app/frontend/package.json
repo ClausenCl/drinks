@@ -13,7 +13,8 @@
     "db:reset": "node scripts/ensure-prisma-link.mjs && node scripts/with-env.mjs prisma migrate reset --schema prisma/schema.prisma --force",
     "db:studio": "node scripts/ensure-prisma-link.mjs && node scripts/with-env.mjs prisma studio --schema prisma/schema.prisma",
     "backup:run": "node scripts/backup-email.mjs",
-    "backup:loop": "node scripts/backup-loop.mjs"
+    "backup:loop": "node scripts/backup-loop.mjs",
+    "backup:restore:drill": "node scripts/backup-restore-drill.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

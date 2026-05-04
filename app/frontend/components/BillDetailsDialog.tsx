@@ -7,7 +7,7 @@ type BillDetails = {
   createdAt: string;
   createdBy: { id: string; name: string; house: { id: string; name: string } };
   paidBy: { id: string; name: string } | null;
-  participants: { id: string; shareAmount: string; user: { id: string; name: string; house: { id: string; name: string } } }[];
+  participants: { id: string; weight: number; shareAmount: string; user: { id: string; name: string; house: { id: string; name: string } } }[];
 };
 
 export function BillDetailsDialog(props: { billId: string; onClose: () => void }) {
@@ -72,7 +72,7 @@ export function BillDetailsDialog(props: { billId: string; onClose: () => void }
                   {details.participants.map((participant) => (
                     <li key={participant.id} className="flex items-baseline justify-between gap-3 text-sm">
                       <div className="min-w-0 truncate">
-                        {participant.user.name} · {participant.user.house.name}
+                        {participant.user.name} · {participant.user.house.name} · {participant.weight}x
                       </div>
                       <div className="shrink-0 tabular-nums">{participant.shareAmount} EUR</div>
                     </li>

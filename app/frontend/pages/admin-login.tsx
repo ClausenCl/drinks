@@ -1,15 +1,26 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useMe } from "../components/useMe";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const next = useMemo(() => (typeof router.query.next === "string" ? router.query.next : ""), [router.query.next]);
+  const { me, loading: loadingMe } = useMe();
 
   const [loginName, setLoginName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (loadingMe || !me) return;
+    if (me.role === "BEWOHNER") {
+      void router.replace(next || "/buy");
+      return;
+    }
+    void router.replace(me.role === "ADMIN" ? "/admin" : "/manager");
+  }, [loadingMe, me, next, router]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,4 +95,3 @@ export default function AdminLoginPage() {
     </div>
   );
 }
-

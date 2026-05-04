@@ -19,10 +19,49 @@ function runBackupOnce() {
     const child = spawn("node", [script], { stdio: "inherit", env: process.env });
     child.on("error", (error) => {
       console.error(error);
-      resolve();
+      resolve({ ok: false, reason: error instanceof Error ? error.message : "SPAWN_ERROR" });
     });
-    child.on("exit", () => resolve());
+    child.on("exit", (code, signal) => {
+      if (code === 0) {
+        resolve({ ok: true, reason: null });
+        return;
+      }
+      resolve({ ok: false, reason: `backup-email exit=${signal ?? code}` });
+    });
   });
+}
+
+async function sendFailureAlert(message) {
+  const webhookUrl = process.env.BACKUP_ALERT_WEBHOOK_URL?.trim();
+  if (!webhookUrl) return;
+  const authToken = process.env.BACKUP_ALERT_WEBHOOK_AUTH?.trim();
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      body: JSON.stringify({
+        ts: new Date().toISOString(),
+        service: "drinks-backup-loop",
+        level: "error",
+        message,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      console.error(`[backup-loop] alert webhook failed: ${res.status}`);
+    } else {
+      console.log("[backup-loop] failure alert sent");
+    }
+  } catch (error) {
+    console.error("[backup-loop] failure alert error", error);
+  }
 }
 
 async function main() {
@@ -32,7 +71,12 @@ async function main() {
   await sleep(initialDelaySeconds * 1000);
 
   while (true) {
-    await runBackupOnce();
+    const result = await runBackupOnce();
+    if (!result.ok) {
+      const message = `Backup run failed: ${result.reason ?? "UNKNOWN_ERROR"}`;
+      console.error(`[backup-loop] ${message}`);
+      await sendFailureAlert(message);
+    }
     console.log(`[backup-loop] sleeping ${intervalSeconds}s`);
     await sleep(intervalSeconds * 1000);
   }
@@ -40,5 +84,6 @@ async function main() {
 
 main().catch((error) => {
   console.error(error);
+  void sendFailureAlert(`Backup loop crashed: ${error instanceof Error ? error.message : "UNKNOWN_ERROR"}`);
   process.exit(1);
 });

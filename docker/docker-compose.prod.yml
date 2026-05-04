@@ -61,6 +61,8 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+      BACKUP_ALERT_WEBHOOK_URL: ${BACKUP_ALERT_WEBHOOK_URL:-}
+      BACKUP_ALERT_WEBHOOK_AUTH: ${BACKUP_ALERT_WEBHOOK_AUTH:-}
     command: ["node", "scripts/backup-loop.mjs"]
     volumes:
       - billing_pdfs:/repo/app/frontend/storage

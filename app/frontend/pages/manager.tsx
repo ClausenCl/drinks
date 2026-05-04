@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { AppShell } from "../components/AppShell";
 import { OpsDomainCards } from "../components/OpsDomainNav";
+import { OpsQuickActions } from "../components/OpsQuickActions";
 import { useMe } from "../components/useMe";
 
 export default function ManagerPage() {
@@ -20,6 +21,7 @@ export default function ManagerPage() {
           <div className="text-sm font-semibold">Minister operations</div>
           <p className="mt-1 text-xs text-neutral-600">House-scoped control center for residents, fridges, and billing.</p>
         </div>
+        <OpsQuickActions basePath="/manager" />
         <OpsDomainCards basePath="/manager" />
       </div>
     </AppShell>

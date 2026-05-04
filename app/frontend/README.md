@@ -28,6 +28,7 @@ npm run db:seed
 - `npm run lint` - lint TypeScript/React
 - `npm run backup:run` - create one DB backup dump (and email it if SMTP is configured)
 - `npm run backup:loop` - run continuous backup loop (used by production backup service)
+- `npm run backup:restore:drill` - restore latest dump into test DB (`BACKUP_RESTORE_TEST_DB_URL` required)
 
 ## Structure
 
@@ -39,9 +40,13 @@ npm run db:seed
 ## Ops routes
 
 - `admin.tsx`, `manager.tsx` are operation landing pages.
+- `buy.tsx` is the dedicated resident buy-only landing route (`/menu` redirects to `/buy`).
 - Domain pages:
   - `/admin/residents`, `/admin/fridges`, `/admin/finance`, `/admin/system`
   - `/manager/residents`, `/manager/fridges`, `/manager/finance`, `/manager/system`
+- Printable fridge QR sheets:
+  - `/admin/fridges-qr-sheet`
+  - `/manager/fridges-qr-sheet`
 - Resident detail workspace:
   - `/admin/residents/[id]`
   - `/manager/residents/[id]`

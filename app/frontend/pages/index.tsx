@@ -1,14 +1,25 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
+import { useMe } from "../components/useMe";
 
 type House = { id: string; name: string; color: string };
 
 export default function IndexPage() {
   const router = useRouter();
   const next = useMemo(() => (typeof router.query.next === "string" ? router.query.next : ""), [router.query.next]);
+  const { me, loading: loadingMe } = useMe();
   const [houses, setHouses] = useState<House[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(true);
+
+  useEffect(() => {
+    if (loadingMe || !me) return;
+    if (me.role === "BEWOHNER") {
+      void router.replace(next || "/buy");
+      return;
+    }
+    void router.replace(me.role === "ADMIN" ? "/admin" : "/manager");
+  }, [loadingMe, me, next, router]);
 
   useEffect(() => {
     let cancelled = false;
